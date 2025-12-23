@@ -6,13 +6,31 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		B3948FE32EFB4B0F007B18F4 /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = B3948FE22EFB4B0F007B18F4 /* .gitignore */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		B384A61A2EF5E3F700EC18E1 /* daily-whisper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "daily-whisper.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		B3948FE22EFB4B0F007B18F4 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		B384A6382EF5E6AD00EC18E1 /* Exceptions for "daily-whisper" folder in "daily-whisper" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = B384A6192EF5E3F700EC18E1 /* daily-whisper */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		B384A61C2EF5E3F700EC18E1 /* daily-whisper */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				B384A6382EF5E6AD00EC18E1 /* Exceptions for "daily-whisper" folder in "daily-whisper" target */,
+			);
 			path = "daily-whisper";
 			sourceTree = "<group>";
 		};
@@ -34,6 +52,7 @@
 			children = (
 				B384A61C2EF5E3F700EC18E1 /* daily-whisper */,
 				B384A61B2EF5E3F700EC18E1 /* Products */,
+				B3948FE22EFB4B0F007B18F4 /* .gitignore */,
 			);
 			sourceTree = "<group>";
 		};
@@ -109,6 +128,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B3948FE32EFB4B0F007B18F4 /* .gitignore in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -256,11 +276,15 @@
 				DEVELOPMENT_TEAM = GKHZ4MY3NF;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "daily-whisper/Info.plist";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Para iniciar la app";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Necesitamos acceso a tu micrófono.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -288,11 +312,15 @@
 				DEVELOPMENT_TEAM = GKHZ4MY3NF;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "daily-whisper/Info.plist";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Para iniciar la app";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Necesitamos acceso a tu micrófono.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
