@@ -32,6 +32,9 @@ struct daily_whisperApp: App {
     // Preferencia de seguridad
     @AppStorage("security.requireOnForeground") private var requireOnForeground: Bool = false
     
+    // NUEVO: Rol persistido (fuente de verdad global)
+    @AppStorage("user.role") private var storedUserRoleRaw: String = AppConfig.UserRole.normal.rawValue
+    
     private let authManager = BiometricAuthManager()
     
     var body: some Scene {
@@ -54,14 +57,36 @@ struct daily_whisperApp: App {
             content
                 .modifier(GlobalColorSchemeApplier(useSystemAppearance: useSystemAppearance, forceDarkMode: forceDarkMode))
                 .onAppear {
+                    // Autenticación inicial
                     guard !hasAttemptedInitialAuth else { return }
                     hasAttemptedInitialAuth = true
                     authenticateBiometricsFirst()
+                    
+                    // Sincronizar AppConfig con el rol persistido
+                    if let role = AppConfig.UserRole(rawValue: storedUserRoleRaw) {
+                        AppConfig.shared.subscription.role = role
+                    } else {
+                        AppConfig.shared.subscription.role = .normal
+                        storedUserRoleRaw = AppConfig.UserRole.normal.rawValue
+                    }
+                    
+                    // Asegurar que el límite diario arranque correcto (redundante, pero explícito)
+                    AppConfig.shared.audio.maxEntriesPerDay = AppConfig.shared.policy.maxEntriesPerDay
+                }
+                .onChange(of: storedUserRoleRaw) { _, newValue in
+                    // Cualquier cambio de rol persistido actualiza AppConfig en caliente
+                    let role = AppConfig.UserRole(rawValue: newValue) ?? .normal
+                    AppConfig.shared.subscription.role = role
                 }
                 .onChange(of: scenePhase) { _, newPhase in
+                    guard newPhase == .active else { return }
+                    
+                    // Limpieza de retención al volver a primer plano
+                    let context = persistenceController.container.viewContext
+                    AppConfig.shared.cleanupOldEntries(context: context)
+                    
                     guard requireOnForeground else { return }
                     guard wasUnlockedOnce else { return }
-                    guard newPhase == .active else { return }
                     
                     if let last = lastUnlockDate, Date().timeIntervalSince(last) < 1.5 {
                         return
@@ -124,4 +149,3 @@ struct PersistenceController {
         }
     }
 }
-
