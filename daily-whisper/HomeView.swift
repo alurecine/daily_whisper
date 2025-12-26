@@ -26,6 +26,10 @@ struct HomeView: View {
     private var entries: FetchedResults<AudioEntry>
     
     @State private var showToast = false
+    @State private var showPlans = false
+    
+    // Color de acento centralizado
+    private var accent: Color { AppConfig.shared.ui.accentColor }
     
     // MARK: - Restricción de audios por día (ahora configurable)
     private var hasReachedDailyLimit: Bool {
@@ -153,7 +157,7 @@ struct HomeView: View {
                 .background(Color(.systemGroupedBackground))
             }
             
-            // Toast Overlay
+            // Toast Overlay para errores de reproducción
             if showToast, let message = player.playbackErrorMessage {
                 VStack {
                     Spacer()
@@ -168,6 +172,44 @@ struct HomeView: View {
                         .accessibilityIdentifier("toastMessage")
                 }
                 .animation(.easeInOut, value: showToast)
+            }
+            
+            // Banner permanente para usuarios normales
+            if AppConfig.shared.subscription.role == .normal {
+                VStack {
+                    Spacer()
+                    HStack(spacing: 10) {
+                        Image(systemName: "star.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.yellow)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Pásate a PRO")
+                                .font(.headline)
+                            Text("Graba más por día y conserva tus audios por más tiempo.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        Button {
+                            showPlans = true
+                        } label: {
+                            Text("Suscribirme")
+                                .font(.subheadline.weight(.semibold))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(accent.opacity(0.15))
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(12)
+                    .background(.ultraThinMaterial)
+                    .cornerRadius(16)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 12)
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .animation(.easeInOut, value: AppConfig.shared.subscription.role)
             }
         }
         .onAppear {
@@ -196,6 +238,12 @@ struct HomeView: View {
                 // Limpiar el mensaje para futuros toasts
                 player.playbackErrorMessage = nil
             }
+        }
+        .sheet(isPresented: $showPlans) {
+            NavigationStack {
+                PlansView()
+            }
+            .presentationDetents([.large])
         }
     }
     
@@ -335,4 +383,3 @@ private struct CardRow: View {
         return formatter.string(from: date)
     }
 }
-

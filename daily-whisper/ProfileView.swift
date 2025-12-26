@@ -15,24 +15,30 @@ struct ProfileView: View {
     @AppStorage("profile.pushEnabled") private var pushEnabled: Bool = true
     @AppStorage("profile.soundEnabled") private var soundEnabled: Bool = true
     @AppStorage("profile.dailySummary") private var dailySummary: Bool = false
-    @AppStorage("profile.accentColorTag") private var accentColorTag: Int = 0 // 0=Mint,1=Blue,2=Orange,3=Purple
     
-    // NUEVO: Preferencia de seguridad
+    // Preferencia de seguridad
     @AppStorage("security.requireOnForeground") private var requireOnForeground: Bool = false
     
     // Estado UI
     @State private var name: String = ""
     @State private var email: String = ""
     @State private var showSavedToast = false
+    @State private var showPlans = false
     
     // Foto de perfil
     @State private var pickedItem: PhotosPickerItem?
     @State private var avatarImageData: Data?
     @AppStorage("profile.avatarData") private var storedAvatarData: Data?
     
-    // Apariencia (ya no aplicada localmente; se aplica globalmente en RootTabView)
+    // Apariencia (aplicada globalmente en RootTabView)
     @AppStorage("profile.useSystemAppearance") private var useSystemAppearance: Bool = true
     @AppStorage("profile.forceDarkMode") private var forceDarkMode: Bool = false
+    
+    // TEST: rol de usuario (persistido para pruebas)
+    @AppStorage("user.role") private var storedUserRoleRaw: String = AppConfig.UserRole.normal.rawValue
+    
+    // Color de acento centralizado
+    private var accent: Color { AppConfig.shared.ui.accentColor }
     
     var avatarImage: Image {
         if let data = avatarImageData ?? storedAvatarData,
@@ -40,6 +46,16 @@ struct ProfileView: View {
             return Image(uiImage: uiImage)
         }
         return Image(systemName: "person.crop.circle.fill")
+    }
+    
+    // Descripción legible del plan actual
+    private var currentPlanDescription: String {
+        switch AppConfig.shared.subscription.role {
+        case .normal:
+            return "Normal — 1 audio/día, historial 7 días"
+        case .pro:
+            return "PRO — 5 audios/día, historial 30 días"
+        }
     }
     
     var body: some View {
@@ -98,22 +114,52 @@ struct ProfileView: View {
                         .autocorrectionDisabled()
                 }
                 
-                // Apariencia (movida antes que Notificaciones)
+                // Apariencia (sin color de acento configurable)
                 Section(header: Text("Apariencia")) {
                     Toggle("Usar apariencia del sistema", isOn: $useSystemAppearance)
                     Toggle("Forzar modo oscuro", isOn: $forceDarkMode)
                         .disabled(useSystemAppearance)
                         .opacity(useSystemAppearance ? 0.5 : 1)
+                }
+                
+                // Suscripción
+                Section(header: Text("Suscripción")) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Plan actual")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            Text(currentPlanDescription)
+                                .font(.headline)
+                        }
+                        Spacer()
+                        if AppConfig.shared.subscription.role == .normal {
+                            Text("Normal")
+                                .font(.caption.weight(.semibold))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.orange.opacity(0.15))
+                                .foregroundColor(.orange)
+                                .clipShape(Capsule())
+                        } else {
+                            Text("PRO")
+                                .font(.caption.weight(.semibold))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(accent.opacity(0.15))
+                                .foregroundColor(accent)
+                                .clipShape(Capsule())
+                        }
+                    }
                     
-                    Picker("Color de acento", selection: $accentColorTag) {
-                        Text("Mint").tag(0)
-                        Text("Blue").tag(1)
-                        Text("Orange").tag(2)
-                        Text("Purple").tag(3)
+                    Button {
+                        showPlans = true
+                    } label: {
+                        Label("Ver planes y precios", systemImage: "creditcard.fill")
                     }
                 }
                 
-                // Notificaciones (queda igual, solo cambia de lugar)
+                // Notificaciones
                 Section(
                     header: Text("Notificaciones"),
                     footer: Text("Configura cómo y cuándo quieres recibir avisos.")
@@ -125,9 +171,9 @@ struct ProfileView: View {
                     Toggle("Resumen diario", isOn: $dailySummary)
                 }
                 
-                // Privacidad y ayuda
+                // Más
                 Section(header: Text("Más")) {
-                    // NUEVO: Seguridad con Face ID al volver
+                    // Seguridad con Face ID al volver
                     Toggle("Requerir Face ID al volver a la app", isOn: $requireOnForeground)
                     
                     NavigationLink(destination:
@@ -155,6 +201,22 @@ struct ProfileView: View {
                     }
                 }
                 
+                // SOLO TEST: Selector de rol (quitar antes de release)
+                Section(header: Text("(Solo test) Rol de usuario")) {
+                    Picker("Rol", selection: $storedUserRoleRaw) {
+                        Text("Normal").tag(AppConfig.UserRole.normal.rawValue)
+                        Text("PRO").tag(AppConfig.UserRole.pro.rawValue)
+                    }
+                    .onChange(of: storedUserRoleRaw) { _, newValue in
+                        if let role = AppConfig.UserRole(rawValue: newValue) {
+                            AppConfig.shared.subscription.role = role
+                        }
+                    }
+                    Text("Este selector es solo para pruebas internas. Elimínalo antes de publicar.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
                 // Guardar y cerrar sesión
                 Section {
                     Button(action: saveProfile) {
@@ -178,6 +240,16 @@ struct ProfileView: View {
                 if avatarImageData == nil {
                     avatarImageData = storedAvatarData
                 }
+                // Sincronizar AppConfig con el valor persistido de test
+                if let role = AppConfig.UserRole(rawValue: storedUserRoleRaw) {
+                    AppConfig.shared.subscription.role = role
+                }
+            }
+            .sheet(isPresented: $showPlans) {
+                NavigationStack {
+                    PlansView()
+                }
+                .presentationDetents([.large])
             }
             
             if showSavedToast {
@@ -222,4 +294,3 @@ struct ProfileView: View {
 #Preview {
     NavigationStack { ProfileView() }
 }
-

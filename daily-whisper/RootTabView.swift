@@ -14,7 +14,7 @@ enum AppTab: Int {
 }
 
 struct RootTabView: View {
-    @AppStorage("profile.accentColorTag") private var accentColorTag: Int = 0
+    // Ya no usamos AppStorage para el color de acento
     @AppStorage("profile.useSystemAppearance") private var useSystemAppearance: Bool = true
     @AppStorage("profile.forceDarkMode") private var forceDarkMode: Bool = false
     
@@ -28,19 +28,11 @@ struct RootTabView: View {
         )
     }
     
-    private var accentColor: Color {
-        switch accentColorTag {
-        case 1: return .blue
-        case 2: return .orange
-        case 3: return .purple
-        default: return .mint
-        }
-    }
-    
     var body: some View {
         TabView(selection: selectedTab) {
             NavigationStack {
-                DashboardView()
+                // Pasamos el binding a DashboardView
+                DashboardView(selectedTab: selectedTab)
                     .navigationTitle("Dashboard")
                     .navigationBarTitleDisplayMode(.inline)
             }
@@ -69,7 +61,7 @@ struct RootTabView: View {
             }
             .tag(AppTab.profile)
         }
-        .tint(accentColor)
+        .tint(AppConfig.shared.ui.accentColor) // Color de acento global desde AppConfig
         .modifier(GlobalColorSchemeApplier(useSystemAppearance: useSystemAppearance, forceDarkMode: forceDarkMode))
     }
 }
@@ -91,4 +83,3 @@ struct GlobalColorSchemeApplier: ViewModifier {
 #Preview {
     RootTabView()
 }
-

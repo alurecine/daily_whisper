@@ -22,8 +22,29 @@ struct DashboardView: View {
     )
     private var allEntries: FetchedResults<AudioEntry>
     
-    // Player local para reproducir desde el dashboard
+    // Player local (si lo necesitas en el futuro)
     @StateObject private var player = AudioPlayerManager()
+    
+    // Binding a la pestaña seleccionada para poder saltar a la lista de audios
+    @Binding var selectedTab: AppTab
+    
+    // Estado para sheet de recomendaciones
+    @State private var selectedRecommendation: RecommendationItem?
+    
+    // Control de navegación a PlansView
+    @State private var showPlans = false
+    
+    // Color de acento centralizado
+    private var accent: Color { AppConfig.shared.ui.accentColor }
+    
+    // Rango seleccionado para el gráfico (local a la sesión)
+    enum ChartRange: String, CaseIterable, Identifiable {
+        case day = "Día"
+        case week = "Semana"
+        case month = "Mes"
+        var id: String { rawValue }
+    }
+    @State private var chartRange: ChartRange = .month
     
     // Datos de ejemplo para "Novedades"
     private let news: [NewsItem] = [
@@ -78,9 +99,6 @@ struct DashboardView: View {
         )
     ]
     
-    // Estado para sheet de recomendaciones (usamos item: en lugar de isPresented:)
-    @State private var selectedRecommendation: RecommendationItem?
-    
     // Últimos 7 días para "Tu semana"
     private var lastWeekEntries: [AudioEntry] {
         let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date().addingTimeInterval(-7*24*3600)
@@ -90,26 +108,17 @@ struct DashboardView: View {
         }
     }
     
-    // Datos para el gráfico del último mes (30 días): conteo por día
-    private var monthlyActivity: [DailyCount] {
-        let days = (0..<30).map { offset -> Date in
-            Calendar.current.startOfDay(for: Date().addingTimeInterval(-Double(offset) * 86400))
-        }
-        var counts: [Date: Int] = [:]
-        for entry in allEntries {
-            guard let d = entry.date else { continue }
-            let day = Calendar.current.startOfDay(for: d)
-            if let minDay = days.last, day >= minDay {
-                counts[day, default: 0] += 1
-            }
-        }
-        let allDays = days.sorted()
-        return allDays.map { DailyCount(date: $0, count: counts[$0, default: 0]) }
-    }
-    
     var body: some View {
-        ScrollView {
+        ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 24) {
+                
+                // Promo PRO (solo usuarios normales)
+                if AppConfig.shared.subscription.role == .normal {
+                    PromoProCard(accent: accent) {
+                        showPlans = true
+                    }
+                    .padding(.horizontal, 16)
+                }
                 
                 // Sección: Novedades
                 SectionHeader("Novedades")
@@ -126,28 +135,40 @@ struct DashboardView: View {
                         )
                 } else {
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 14) {
+                        HStack(spacing: 10) {
                             ForEach(lastWeekEntries) { entry in
-                                AudioSquareCard(entry: entry, player: player)
+                                MiniWeekCard(entry: entry) {
+                                    // Al tocar cualquier card, saltamos a la pestaña de lista de audios
+                                    selectedTab = .record
+                                }
                             }
                         }
                         .padding(.horizontal, 16)
                     }
                 }
                 
-                // Sección: Recomendaciones (carousel con imagen + texto)
+                // Sección: Recomendaciones (restaurada)
                 SectionHeader("Recomendaciones")
                 RecommendationsCarousel(items: recommendations) { item in
-                    // Asignamos el item antes de presentar la sheet
                     selectedRecommendation = item
                 }
                 
-                // Sección: Resumen (gráfico del último mes)
-                SectionHeader("Resumen del último mes")
-                ActivityChart(data: monthlyActivity)
-                    .frame(height: 220)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
+                // Sección: Resumen (gráfico) con Picker debajo del título
+                VStack(alignment: .leading, spacing: 10) {
+                    SectionHeader("Resumen de actividad")
+                    Picker("", selection: $chartRange) {
+                        Text("D").tag(ChartRange.day)
+                        Text("S").tag(ChartRange.week)
+                        Text("M").tag(ChartRange.month)
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(maxWidth: 200)
+                    
+                    ActivityChart(data: chartData, range: chartRange)
+                        .frame(height: 220)
+                        .padding(.top, 4)
+                }
+                .padding(.horizontal, 16)
             }
             .padding(.vertical, 16)
         }
@@ -158,6 +179,77 @@ struct DashboardView: View {
                 .presentationDetents([.fraction(0.75), .large])
                 .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: $showPlans) {
+            NavigationStack {
+                PlansView()
+            }
+            .presentationDetents([.large])
+        }
+    }
+    
+    // MARK: - Datos del gráfico según rango
+    
+    private var chartData: [TimeCount] {
+        switch chartRange {
+        case .day:
+            return hourlyActivityLast24h
+        case .week:
+            return dailyActivityLast7d
+        case .month:
+            return dailyActivityLast30d
+        }
+    }
+    
+    private var hourlyActivityLast24h: [TimeCount] {
+        let hours = (0..<24).map { offset -> Date in
+            let date = Date().addingTimeInterval(-Double(offset) * 3600)
+            let start = Calendar.current.date(bySettingHour: 0, minute: 0, second: 0, of: date) ?? date
+            return start
+        }
+        var counts: [Date: Int] = [:]
+        for entry in allEntries {
+            guard let d = entry.date else { continue }
+            // Redondear a la hora exacta (minuto y segundo en 0)
+            let hour = Calendar.current.component(.hour, from: d)
+            let startHour = Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: d) ?? d
+            if let minHour = hours.last, startHour >= minHour {
+                counts[startHour, default: 0] += 1
+            }
+        }
+        let sorted = hours.sorted()
+        return sorted.map { TimeCount(date: $0, count: counts[$0, default: 0]) }
+    }
+    
+    private var dailyActivityLast7d: [TimeCount] {
+        let days = (0..<7).map { offset -> Date in
+            Calendar.current.startOfDay(for: Date().addingTimeInterval(-Double(offset) * 86400))
+        }
+        var counts: [Date: Int] = [:]
+        for entry in allEntries {
+            guard let d = entry.date else { continue }
+            let day = Calendar.current.startOfDay(for: d)
+            if let minDay = days.last, day >= minDay {
+                counts[day, default: 0] += 1
+            }
+        }
+        let sorted = days.sorted()
+        return sorted.map { TimeCount(date: $0, count: counts[$0, default: 0]) }
+    }
+    
+    private var dailyActivityLast30d: [TimeCount] {
+        let days = (0..<30).map { offset -> Date in
+            Calendar.current.startOfDay(for: Date().addingTimeInterval(-Double(offset) * 86400))
+        }
+        var counts: [Date: Int] = [:]
+        for entry in allEntries {
+            guard let d = entry.date else { continue }
+            let day = Calendar.current.startOfDay(for: d)
+            if let minDay = days.last, day >= minDay {
+                counts[day, default: 0] += 1
+            }
+        }
+        let sorted = days.sorted()
+        return sorted.map { TimeCount(date: $0, count: counts[$0, default: 0]) }
     }
 }
 
@@ -375,44 +467,46 @@ private struct RecommendationDetailSheet: View {
     }
 }
 
-// MARK: - Card de audio cuadrada
-
-private struct AudioSquareCard: View {
-    let entry: AudioEntry
-    @ObservedObject var player: AudioPlayerManager
-    
-    private var isPlaying: Bool {
-        player.currentEntryID == entry.id && player.isPlaying
-    }
+// MARK: - Promo PRO Card (usa accent centralizado)
+private struct PromoProCard: View {
+    let accent: Color
+    let onSubscribe: () -> Void
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(formattedDate(entry.date ?? Date()))
-                .font(.subheadline.weight(.semibold))
-                .foregroundColor(.primary)
-                .lineLimit(1)
-            Text("\(Int(entry.duration)) s")
-                .font(.caption)
-                .foregroundColor(.secondary)
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(accent.opacity(0.15))
+                    .frame(width: 54, height: 54)
+                Image(systemName: "star.fill")
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundStyle(accent)
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Pásate a PRO")
+                    .font(.headline)
+                Text("Graba hasta 5 audios diarios y conserva 30 días de historial.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .lineLimit(nil)
+                    .minimumScaleFactor(0.75)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .layoutPriority(1)
+            }
             Spacer()
             Button {
-                player.toggle(entry: entry)
+                onSubscribe()
             } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: isPlaying ? "stop.fill" : "play.fill")
-                    Text(isPlaying ? "Detener" : "Reproducir")
-                }
-                .font(.caption.weight(.semibold))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(isPlaying ? Color.red.opacity(0.15) : Color.blue.opacity(0.15))
-                .foregroundColor(isPlaying ? .red : .blue)
-                .clipShape(Capsule())
+                Text("Suscribirme")
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(accent.opacity(0.15))
+                    .clipShape(Capsule())
             }
             .buttonStyle(.plain)
         }
-        .padding(12)
-        .frame(width: 140, height: 140, alignment: .leading)
+        .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(Color(.secondarySystemBackground))
@@ -421,48 +515,132 @@ private struct AudioSquareCard: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .stroke(Color.black.opacity(0.06), lineWidth: 0.5)
         )
-        .shadow(color: Color.black.opacity(0.05), radius: 6, x: 0, y: 3)
-    }
-    
-    private func formattedDate(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.dateStyle = .medium
-        return f.string(from: date)
+        .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 4)
     }
 }
 
-// MARK: - Gráfico de actividad (último mes)
+// MARK: - Mini card para "Tu semana"
 
-private struct DailyCount: Identifiable {
+private struct MiniWeekCard: View {
+    let entry: AudioEntry
+    let onTap: () -> Void
+    
+    private var formattedDay: String {
+        let f = DateFormatter()
+        f.dateFormat = "E d" // ej: "Lun 23"
+        return f.string(from: entry.date ?? Date())
+    }
+    
+    private var formattedTime: String {
+        let f = DateFormatter()
+        f.timeStyle = .short // ej: "14:32"
+        return f.string(from: entry.date ?? Date())
+    }
+    
+    private var durationText: String {
+        "\(Int(entry.duration)) s"
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            // Encabezado: día y hora
+            HStack {
+                Text(formattedDay)
+                    .font(.caption.weight(.semibold))
+                Spacer()
+                Text(formattedTime)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+            
+            // Ícono + duración
+            HStack(spacing: 4) {
+                Image(systemName: "waveform")
+                    .font(.caption)
+                    .foregroundStyle(.blue)
+                Text(durationText)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+            
+            // Pie: pequeño badge (sin Spacer para compactar)
+            HStack(spacing: 4) {
+                Image(systemName: "mic.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Text("Audio")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+            .padding(.top, 2)
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .frame(width: 150, height: 80, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color(.secondarySystemBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.black.opacity(0.06), lineWidth: 0.5)
+        )
+        .shadow(color: Color.black.opacity(0.05), radius: 6, x: 0, y: 3)
+        .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .onTapGesture {
+            onTap()
+        }
+    }
+}
+
+// MARK: - Gráfico de actividad adaptado a rango
+
+private struct TimeCount: Identifiable {
     let id = UUID()
     let date: Date
     let count: Int
 }
 
 private struct ActivityChart: View {
-    let data: [DailyCount]
+    let data: [TimeCount]
+    let range: DashboardView.ChartRange
     
     var body: some View {
         Chart {
-            ForEach(data) { day in
+            ForEach(data) { point in
                 BarMark(
-                    x: .value("Fecha", day.date, unit: .day),
-                    y: .value("Audios", day.count)
+                    x: .value("Fecha", point.date, unit: xUnit),
+                    y: .value("Audios", point.count)
                 )
-                .foregroundStyle(Color.mint.gradient)
+                .foregroundStyle(AppConfig.shared.ui.accentColor.gradient)
             }
         }
         .chartXAxis {
-            AxisMarks(values: .stride(by: .day, count: 5)) { value in
-                AxisGridLine()
-                AxisTick()
-                AxisValueLabel(format: .dateTime.day().month(.abbreviated))
+            switch range {
+            case .day:
+                AxisMarks(values: .stride(by: .hour, count: 3)) { _ in
+                    AxisGridLine()
+                    AxisTick()
+                    AxisValueLabel(format: .dateTime.hour(.defaultDigits(amPM: .abbreviated)))
+                }
+            case .week:
+                AxisMarks(values: .stride(by: .day)) { _ in
+                    AxisGridLine()
+                    AxisTick()
+                    AxisValueLabel(format: .dateTime.weekday(.abbreviated))
+                }
+            case .month:
+                AxisMarks(values: .stride(by: .day, count: 5)) { _ in
+                    AxisGridLine()
+                    AxisTick()
+                    AxisValueLabel(format: .dateTime.day().month(.abbreviated))
+                }
             }
         }
         .chartYAxis {
             AxisMarks(position: .leading)
         }
-        .chartYScale(domain: 0...(maxCount + 1))
+        .chartYScale(domain: 0...(maxY + 1))
         .chartPlotStyle { plotArea in
             plotArea
                 .background(Color(.secondarySystemBackground))
@@ -470,14 +648,21 @@ private struct ActivityChart: View {
         }
     }
     
-    private var maxCount: Int {
+    private var xUnit: Calendar.Component {
+        switch range {
+        case .day: return .hour
+        case .week, .month: return .day
+        }
+    }
+    
+    private var maxY: Int {
         data.map(\.count).max() ?? 0
     }
 }
 
 #Preview {
     NavigationStack {
-        DashboardView()
+        DashboardView(selectedTab: .constant(.dashboard))
             .navigationTitle("Dashboard")
             .navigationBarTitleDisplayMode(.inline)
     }
