@@ -60,7 +60,11 @@ struct PlansView: View {
                 VStack(spacing: 12) {
                     ForEach(Plan.allCases) { plan in
                         PlanCard(plan: plan, isSelected: selectedPlan == plan, accent: accent)
-                            .onTapGesture { selectedPlan = plan }
+                            .onTapGesture {
+                                withAnimation(.smooth) {
+                                    selectedPlan = plan
+                                }
+                            }
                     }
                 }
                 .padding(.top, 8)
