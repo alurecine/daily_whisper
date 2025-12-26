@@ -25,6 +25,13 @@ final class AudioRecorderManager: NSObject, ObservableObject {
         AppConfig.shared.audio.maxRecordingDuration
     }
     
+    // Nuevo: reset explícito del temporizador cuando no se está grabando
+    func reset() {
+        if !isRecording {
+            currentTime = 0
+        }
+    }
+    
     func requestPermission() {
         AVAudioSession.sharedInstance().requestRecordPermission { granted in
             if !granted {

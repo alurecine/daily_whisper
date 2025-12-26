@@ -7,41 +7,37 @@
 
 import SwiftUI
 import PhotosUI
+internal import CoreData
 
 struct ProfileView: View {
-    // Persistencia simple
-    @AppStorage("profile.name") private var storedName: String = "Tu nombre"
-    @AppStorage("profile.email") private var storedEmail: String = "tu@email.com"
-    @AppStorage("profile.pushEnabled") private var pushEnabled: Bool = true
-    @AppStorage("profile.soundEnabled") private var soundEnabled: Bool = true
-    @AppStorage("profile.dailySummary") private var dailySummary: Bool = false
+    @Environment(\.managedObjectContext) private var viewContext
     
-    // Preferencia de seguridad
-    @AppStorage("security.requireOnForeground") private var requireOnForeground: Bool = false
-    
-    // Estado UI
+    // Estados UI (editables)
     @State private var name: String = ""
     @State private var email: String = ""
-    @State private var showSavedToast = false
+    @State private var avatarImageData: Data?
+    
+    // Estados de control
+    @State private var user: User?
+    @State private var pickedItem: PhotosPickerItem?
     @State private var showPlans = false
     
-    // Foto de perfil
-    @State private var pickedItem: PhotosPickerItem?
-    @State private var avatarImageData: Data?
-    @AppStorage("profile.avatarData") private var storedAvatarData: Data?
-    
-    // Apariencia (aplicada globalmente en RootTabView)
+    // Preferencias de apariencia (se mantienen en AppStorage como antes)
     @AppStorage("profile.useSystemAppearance") private var useSystemAppearance: Bool = true
     @AppStorage("profile.forceDarkMode") private var forceDarkMode: Bool = false
     
-    // TEST: rol de usuario (persistido para pruebas)
+    // Preferencia de seguridad (se mantiene en AppStorage)
+    @AppStorage("security.requireOnForeground") private var requireOnForeground: Bool = false
+    
+    // Rol persistido (se mantiene en AppStorage)
     @AppStorage("user.role") private var storedUserRoleRaw: String = AppConfig.UserRole.normal.rawValue
     
     // Color de acento centralizado
     private var accent: Color { AppConfig.shared.ui.accentColor }
     
+    // Vista de la imagen del perfil
     var avatarImage: Image {
-        if let data = avatarImageData ?? storedAvatarData,
+        if let data = avatarImageData,
            let uiImage = UIImage(data: data) {
             return Image(uiImage: uiImage)
         }
@@ -52,9 +48,11 @@ struct ProfileView: View {
     private var currentPlanDescription: String {
         switch AppConfig.shared.subscription.role {
         case .normal:
-            return "Normal — 1 audio/día, historial 7 días"
+            return "Normal — 1 audio/día, 30s por audio, historial 7 días"
         case .pro:
-            return "PRO — 5 audios/día, historial 30 días"
+            return "PRO — 5 audios/día, 60s por audio, historial 30 días"
+        case .unlimited:
+            return "ILIMITADO — audios sin límite, 120s por audio, historial 90 días"
         }
     }
     
@@ -67,8 +65,9 @@ struct ProfileView: View {
                         PhotosPicker(
                             selection: $pickedItem,
                             matching: .images,
-                            photoLibrary: .shared(),
-                            label: {
+                            photoLibrary: .shared()
+                        ) {
+                            AnyView(
                                 avatarImage
                                     .resizable()
                                     .scaledToFill()
@@ -87,14 +86,14 @@ struct ProfileView: View {
                                             .offset(x: 4, y: 4)
                                     }
                                     .contentShape(Rectangle())
-                            }
-                        )
+                            )
+                        }
                         .buttonStyle(.plain)
                         
                         VStack(spacing: 4) {
-                            Text(name.isEmpty ? storedName : name)
+                            Text(name.isEmpty ? "Tu nombre" : name)
                                 .font(.headline)
-                            Text(email.isEmpty ? storedEmail : email)
+                            Text(email.isEmpty ? "tu@email.com" : email)
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                                 .textSelection(.disabled)
@@ -114,7 +113,7 @@ struct ProfileView: View {
                         .autocorrectionDisabled()
                 }
                 
-                // Apariencia (sin color de acento configurable)
+                // Apariencia
                 Section(header: Text("Apariencia")) {
                     Toggle("Usar apariencia del sistema", isOn: $useSystemAppearance)
                     Toggle("Forzar modo oscuro", isOn: $forceDarkMode)
@@ -133,7 +132,8 @@ struct ProfileView: View {
                                 .font(.headline)
                         }
                         Spacer()
-                        if AppConfig.shared.subscription.role == .normal {
+                        switch AppConfig.shared.subscription.role {
+                        case .normal:
                             Text("Normal")
                                 .font(.caption.weight(.semibold))
                                 .padding(.horizontal, 8)
@@ -141,13 +141,21 @@ struct ProfileView: View {
                                 .background(Color.orange.opacity(0.15))
                                 .foregroundColor(.orange)
                                 .clipShape(Capsule())
-                        } else {
+                        case .pro:
                             Text("PRO")
                                 .font(.caption.weight(.semibold))
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
                                 .background(accent.opacity(0.15))
                                 .foregroundColor(accent)
+                                .clipShape(Capsule())
+                        case .unlimited:
+                            Text("ILIMITADO")
+                                .font(.caption.weight(.semibold))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.purple.opacity(0.15))
+                                .foregroundColor(.purple)
                                 .clipShape(Capsule())
                         }
                     }
@@ -164,16 +172,24 @@ struct ProfileView: View {
                     header: Text("Notificaciones"),
                     footer: Text("Configura cómo y cuándo quieres recibir avisos.")
                 ) {
-                    Toggle("Notificaciones push", isOn: $pushEnabled)
-                    Toggle("Sonidos", isOn: $soundEnabled)
-                        .disabled(!pushEnabled)
-                        .opacity(pushEnabled ? 1 : 0.5)
-                    Toggle("Resumen diario", isOn: $dailySummary)
+                    Toggle("Notificaciones push", isOn: .init(
+                        get: { UserDefaults.standard.bool(forKey: "profile.pushEnabled") },
+                        set: { UserDefaults.standard.set($0, forKey: "profile.pushEnabled") }
+                    ))
+                    Toggle("Sonidos", isOn: .init(
+                        get: { UserDefaults.standard.bool(forKey: "profile.soundEnabled") },
+                        set: { UserDefaults.standard.set($0, forKey: "profile.soundEnabled") }
+                    ))
+                    .disabled(!UserDefaults.standard.bool(forKey: "profile.pushEnabled"))
+                    .opacity(UserDefaults.standard.bool(forKey: "profile.pushEnabled") ? 1 : 0.5)
+                    Toggle("Resumen diario", isOn: .init(
+                        get: { UserDefaults.standard.bool(forKey: "profile.dailySummary") },
+                        set: { UserDefaults.standard.set($0, forKey: "profile.dailySummary") }
+                    ))
                 }
                 
                 // Más
                 Section(header: Text("Más")) {
-                    // Seguridad con Face ID al volver
                     Toggle("Requerir Face ID al volver a la app", isOn: $requireOnForeground)
                     
                     NavigationLink(destination:
@@ -200,50 +216,20 @@ struct ProfileView: View {
                         Label("Términos y condiciones", systemImage: "doc.text.fill")
                     }
                 }
-                
-                // SOLO TEST: Selector de rol (quitar antes de release)
-                Section(header: Text("(Solo test) Rol de usuario")) {
-                    Picker("Rol", selection: $storedUserRoleRaw) {
-                        Text("Normal").tag(AppConfig.UserRole.normal.rawValue)
-                        Text("PRO").tag(AppConfig.UserRole.pro.rawValue)
-                    }
-                    .onChange(of: storedUserRoleRaw) { _, newValue in
-                        if let role = AppConfig.UserRole(rawValue: newValue) {
-                            AppConfig.shared.subscription.role = role
-                        }
-                    }
-                    Text("Este selector es solo para pruebas internas. Elimínalo antes de publicar.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                
-                // Guardar y cerrar sesión
-                Section {
-                    Button(action: saveProfile) {
-                        Label("Guardar cambios", systemImage: "checkmark.circle.fill")
-                    }
-                    
-                    Button(role: .destructive, action: {
-                        // Lógica de logout en el futuro
-                    }) {
-                        Label("Cerrar sesión", systemImage: "rectangle.portrait.and.arrow.right")
-                    }
-                }
             }
             .onChange(of: pickedItem) { _, newValue in
                 Task { await loadPickedPhoto(newValue) }
             }
             .onAppear {
-                // precargar datos en campos editables
-                name = storedName
-                email = storedEmail
-                if avatarImageData == nil {
-                    avatarImageData = storedAvatarData
-                }
-                // Sincronizar AppConfig con el valor persistido de test
+                // Sincronizar AppConfig con el valor persistido del rol
                 if let role = AppConfig.UserRole(rawValue: storedUserRoleRaw) {
                     AppConfig.shared.subscription.role = role
                 }
+                // Cargar o crear el usuario
+                loadUser()
+            }
+            .onDisappear {
+                autoSaveIfNeeded()
             }
             .sheet(isPresented: $showPlans) {
                 NavigationStack {
@@ -251,41 +237,101 @@ struct ProfileView: View {
                 }
                 .presentationDetents([.large])
             }
+        }
+    }
+    
+    // MARK: - Carga y guardado
+    
+    func loadUser() {
+        do {
+            // Obtener o crear
+            let u = try UserRepository.fetchOrCreateUser(in: viewContext)
+            self.user = u
             
-            if showSavedToast {
-                VStack {
-                    Spacer()
-                    Text("Cambios guardados")
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        .background(Color.black.opacity(0.8))
-                        .cornerRadius(12)
-                        .padding(.bottom, 40)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-                .animation(.easeInOut, value: showSavedToast)
+            // Si el usuario recién se creó y existen valores previos en AppStorage,
+            // migralos una sola vez.
+            let defaults = UserDefaults.standard
+            let storedName = defaults.string(forKey: "profile.name")
+            let storedEmail = defaults.string(forKey: "profile.email")
+            let storedAvatarData = defaults.data(forKey: "profile.avatarData")
+            
+            var didMigrate = false
+            if let storedName, !(storedName.isEmpty) {
+                u.name = storedName
+                didMigrate = true
             }
+            if let storedEmail, !(storedEmail.isEmpty) {
+                u.email = storedEmail
+                didMigrate = true
+            }
+            if let storedAvatarData {
+                u.profileImageData = storedAvatarData
+                didMigrate = true
+            }
+            if didMigrate {
+                u.updatedAt = Date()
+                try? viewContext.save()
+                
+                // Limpia AppStorage para no duplicar
+                defaults.removeObject(forKey: "profile.name")
+                defaults.removeObject(forKey: "profile.email")
+                defaults.removeObject(forKey: "profile.avatarData")
+            }
+            
+            // Reflejar en estados locales
+            self.name = u.name ?? ""
+            self.email = u.email ?? ""
+            self.avatarImageData = u.profileImageData
+            
+        } catch {
+            print("Error loading/creating User:", error)
         }
     }
     
-    // MARK: - Helpers
-    
-    private func saveProfile() {
-        storedName = name.isEmpty ? "Tu nombre" : name
-        storedEmail = email.isEmpty ? "tu@email.com" : email
-        storedAvatarData = avatarImageData
-        withAnimation { showSavedToast = true }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
-            withAnimation { showSavedToast = false }
+    // Guarda solo si hubo cambios en nombre/email/imagen vs el objeto User actual
+    private func autoSaveIfNeeded() {
+        guard let u = user else { return }
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        let originalName = u.name ?? ""
+        let originalEmail = u.email ?? ""
+        let originalAvatar = u.profileImageData
+        
+        let nameChanged = trimmedName != originalName
+        let emailChanged = trimmedEmail != originalEmail
+        let avatarChanged = avatarImageData != originalAvatar
+        
+        guard nameChanged || emailChanged || avatarChanged else { return }
+        
+        // Aplicar cambios acumulados
+        u.name = trimmedName.isEmpty ? nil : trimmedName
+        u.email = trimmedEmail.isEmpty ? nil : trimmedEmail
+        if avatarChanged {
+            u.profileImageData = avatarImageData
+        }
+        u.updatedAt = Date()
+        
+        do {
+            try viewContext.save()
+        } catch {
+            print("Error auto-saving profile:", error)
         }
     }
     
-    private func loadPickedPhoto(_ item: PhotosPickerItem?) async {
+    // MARK: - Imagen
+    
+    func loadPickedPhoto(_ item: PhotosPickerItem?) async {
         guard let item else { return }
         if let data = try? await item.loadTransferable(type: Data.self) {
             await MainActor.run {
                 self.avatarImageData = data
+                // Guardar directo en Core Data (opcional; onDisappear también lo guardará si cambió)
+                if let u = self.user {
+                    u.profileImageData = data
+                    u.updatedAt = Date()
+                    try? self.viewContext.save()
+                }
             }
         }
     }

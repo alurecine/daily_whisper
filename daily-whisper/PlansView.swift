@@ -21,6 +21,7 @@ struct PlansView: View {
     enum Plan: String, CaseIterable, Identifiable {
         case proMonthly
         case proYearly
+        case unlimited
         
         var id: String { rawValue }
         
@@ -28,6 +29,7 @@ struct PlansView: View {
             switch self {
             case .proMonthly: return "PRO Mensual"
             case .proYearly: return "PRO Anual"
+            case .unlimited: return "ILIMITADO"
             }
         }
         
@@ -35,6 +37,7 @@ struct PlansView: View {
             switch self {
             case .proMonthly: return "US$ 3.99/mes"
             case .proYearly: return "US$ 29.99/año"
+            case .unlimited: return "US$ 59.99/año"
             }
         }
         
@@ -42,6 +45,7 @@ struct PlansView: View {
             switch self {
             case .proMonthly: return "Cancela cuando quieras."
             case .proYearly: return "Ahorra 37% vs mensual."
+            case .unlimited: return "Audios sin límite. 2 minutos por audio."
             }
         }
     }
@@ -49,13 +53,13 @@ struct PlansView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                Text("Elige tu plan PRO")
+                Text("Elige tu plan")
                     .font(.largeTitle.bold())
                     .frame(maxWidth: .infinity, alignment: .leading)
                 
-                BenefitRow(icon: "mic.fill", title: "Graba más por día", subtitle: "Hasta 5 audios diarios", accent: accent)
-                BenefitRow(icon: "tray.full.fill", title: "Más historial", subtitle: "Conserva tus audios por 30 días", accent: accent)
-                BenefitRow(icon: "waveform", title: "Mejoras futuras", subtitle: "Acceso prioritario a novedades", accent: accent)
+                BenefitRow(icon: "mic.fill", title: "Graba más por día", subtitle: "Hasta 5 audios diarios en PRO. Sin límite en ILIMITADO.", accent: accent)
+                BenefitRow(icon: "timer", title: "Duración por audio", subtitle: "30s Normal, 60s PRO, 120s ILIMITADO", accent: accent)
+                BenefitRow(icon: "tray.full.fill", title: "Más historial", subtitle: "7/30/90 días según plan", accent: accent)
                 
                 VStack(spacing: 12) {
                     ForEach(Plan.allCases) { plan in
@@ -70,10 +74,15 @@ struct PlansView: View {
                 .padding(.top, 8)
                 
                 Button {
-                    // Aquí integrarás tu flujo de compra (StoreKit)
-                    // Simulación: marcar usuario como PRO y persistirlo
-                    AppConfig.shared.subscription.role = .pro
-                    storedUserRoleRaw = AppConfig.UserRole.pro.rawValue
+                    // Simulación de compra: setear rol según plan
+                    switch selectedPlan {
+                    case .proMonthly, .proYearly:
+                        AppConfig.shared.subscription.role = .pro
+                        storedUserRoleRaw = AppConfig.UserRole.pro.rawValue
+                    case .unlimited:
+                        AppConfig.shared.subscription.role = .unlimited
+                        storedUserRoleRaw = AppConfig.UserRole.unlimited.rawValue
+                    }
                     dismiss()
                 } label: {
                     Text("Suscribirme a \(selectedPlan.title)")
@@ -167,3 +176,4 @@ private struct PlanCard: View {
         PlansView()
     }
 }
+
