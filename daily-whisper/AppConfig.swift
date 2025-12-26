@@ -73,12 +73,53 @@ final class AppConfig {
         var encoderQuality: AVAudioQuality = .high
     }
     
+    // MARK: - Emociones (Dominio)
+    enum Emotion: String, CaseIterable, Identifiable {
+        case veryHappy = "very_happy"
+        case happy = "happy"
+        case neutral = "neutral"
+        case sad = "sad"
+        case verySad = "very_sad"
+        
+        var id: String { rawValue }
+        
+        var title: String {
+            switch self {
+            case .veryHappy: return "Muy feliz"
+            case .happy: return "Feliz"
+            case .neutral: return "Neutral"
+            case .sad: return "Triste"
+            case .verySad: return "Muy triste"
+            }
+        }
+    }
+    
     // MARK: - UI
     struct UI {
         // Color de acento global de la app (cámbialo aquí para ajustar rápido)
         var accentColor: Color = .mint
         
         var recordButton = RecordButton()
+        
+        // Representación visual de una emoción (configurable)
+        struct EmotionItem {
+            let systemImage: String
+            let color: Color
+        }
+        
+        // Mapeo configurable de emociones a su representación visual
+        var emotions: [AppConfig.Emotion: EmotionItem] = [
+            .veryHappy: EmotionItem(systemImage: "face.smiling.fill", color: .yellow),
+            .happy: EmotionItem(systemImage: "face.smiling.fill", color: .orange),
+            .neutral: EmotionItem(systemImage: "face.smiling.fill", color: .gray),
+            .sad: EmotionItem(systemImage: "face.smiling.fill", color: .blue),
+            .verySad: EmotionItem(systemImage: "face.smiling.fill", color: .indigo)
+        ]
+        
+        // Orden de presentación configurable (los 5 iniciales)
+        var emotionOrder: [AppConfig.Emotion] = [
+            .veryHappy, .happy, .neutral, .sad, .verySad
+        ]
         
         struct RecordButton {
             // Tamaño base del botón
@@ -116,6 +157,14 @@ final class AppConfig {
     // Instancias actuales (mutables si quieres ajustar en tiempo de ejecución)
     var audio = Audio()
     var ui = UI()
+}
+
+// MARK: - Helpers de emociones
+extension AppConfig.Emotion {
+    static func from(raw: String?) -> AppConfig.Emotion? {
+        guard let raw else { return nil }
+        return AppConfig.Emotion(rawValue: raw)
+    }
 }
 
 // MARK: - Retención de audios
@@ -157,3 +206,4 @@ extension AppConfig {
         }
     }
 }
+
