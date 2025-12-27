@@ -6,7 +6,32 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		B342F5862EFF37D90072B067 /* UserDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = B342F5852EFF37D90072B067 /* UserDTO.swift */; };
+		B342F5882EFF37DB0072B067 /* AudioEntryDTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = B342F5872EFF37DB0072B067 /* AudioEntryDTO.swift */; };
+		B342F58A2EFF37DE0072B067 /* CloudProtocols.swift in Sources */ = {isa = PBXBuildFile; fileRef = B342F5892EFF37DE0072B067 /* CloudProtocols.swift */; };
+		B342F58C2EFF37DF0072B067 /* DefaultPathResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = B342F58B2EFF37DF0072B067 /* DefaultPathResolver.swift */; };
+		B342F58E2EFF37EA0072B067 /* SyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B342F58D2EFF37EA0072B067 /* SyncService.swift */; };
+		B342F5902EFF41970072B067 /* PurchaseModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B342F58F2EFF41970072B067 /* PurchaseModels.swift */; };
+		B342F5922EFF41A50072B067 /* InAppPurchaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B342F5912EFF41A50072B067 /* InAppPurchaseService.swift */; };
+		B342F5942EFF420A0072B067 /* ToastModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B342F5932EFF420A0072B067 /* ToastModels.swift */; };
+		B342F5962EFF42100072B067 /* ToastCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B342F5952EFF42100072B067 /* ToastCenter.swift */; };
+		B342F5982EFF42150072B067 /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B342F5972EFF42150072B067 /* ToastView.swift */; };
+		B342F59A2EFF42170072B067 /* ToastOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = B342F5992EFF42170072B067 /* ToastOverlay.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
+		B342F5852EFF37D90072B067 /* UserDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDTO.swift; sourceTree = "<group>"; };
+		B342F5872EFF37DB0072B067 /* AudioEntryDTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEntryDTO.swift; sourceTree = "<group>"; };
+		B342F5892EFF37DE0072B067 /* CloudProtocols.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudProtocols.swift; sourceTree = "<group>"; };
+		B342F58B2EFF37DF0072B067 /* DefaultPathResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultPathResolver.swift; sourceTree = "<group>"; };
+		B342F58D2EFF37EA0072B067 /* SyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncService.swift; sourceTree = "<group>"; };
+		B342F58F2EFF41970072B067 /* PurchaseModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseModels.swift; sourceTree = "<group>"; };
+		B342F5912EFF41A50072B067 /* InAppPurchaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InAppPurchaseService.swift; sourceTree = "<group>"; };
+		B342F5932EFF420A0072B067 /* ToastModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastModels.swift; sourceTree = "<group>"; };
+		B342F5952EFF42100072B067 /* ToastCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastCenter.swift; sourceTree = "<group>"; };
+		B342F5972EFF42150072B067 /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
+		B342F5992EFF42170072B067 /* ToastOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastOverlay.swift; sourceTree = "<group>"; };
 		B384A61A2EF5E3F700EC18E1 /* daily-whisper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "daily-whisper.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -47,6 +72,17 @@
 			children = (
 				B384A61C2EF5E3F700EC18E1 /* daily-whisper */,
 				B384A61B2EF5E3F700EC18E1 /* Products */,
+				B342F5852EFF37D90072B067 /* UserDTO.swift */,
+				B342F5872EFF37DB0072B067 /* AudioEntryDTO.swift */,
+				B342F5892EFF37DE0072B067 /* CloudProtocols.swift */,
+				B342F58B2EFF37DF0072B067 /* DefaultPathResolver.swift */,
+				B342F58D2EFF37EA0072B067 /* SyncService.swift */,
+				B342F58F2EFF41970072B067 /* PurchaseModels.swift */,
+				B342F5912EFF41A50072B067 /* InAppPurchaseService.swift */,
+				B342F5932EFF420A0072B067 /* ToastModels.swift */,
+				B342F5952EFF42100072B067 /* ToastCenter.swift */,
+				B342F5972EFF42150072B067 /* ToastView.swift */,
+				B342F5992EFF42170072B067 /* ToastOverlay.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -135,6 +171,17 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B342F58C2EFF37DF0072B067 /* DefaultPathResolver.swift in Sources */,
+				B342F5942EFF420A0072B067 /* ToastModels.swift in Sources */,
+				B342F5862EFF37D90072B067 /* UserDTO.swift in Sources */,
+				B342F5962EFF42100072B067 /* ToastCenter.swift in Sources */,
+				B342F58A2EFF37DE0072B067 /* CloudProtocols.swift in Sources */,
+				B342F58E2EFF37EA0072B067 /* SyncService.swift in Sources */,
+				B342F59A2EFF42170072B067 /* ToastOverlay.swift in Sources */,
+				B342F5922EFF41A50072B067 /* InAppPurchaseService.swift in Sources */,
+				B342F5982EFF42150072B067 /* ToastView.swift in Sources */,
+				B342F5882EFF37DB0072B067 /* AudioEntryDTO.swift in Sources */,
+				B342F5902EFF41970072B067 /* PurchaseModels.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

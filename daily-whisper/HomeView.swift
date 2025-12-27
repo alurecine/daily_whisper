@@ -7,7 +7,7 @@
 
 import Foundation
 import SwiftUI
-import CoreData
+internal import CoreData
 import Combine
 import AVFAudio
 
@@ -28,6 +28,20 @@ struct HomeView: View {
     @State private var showToast = false
     @State private var showPlans = false
     
+    // Filtro de emoción (nil = Todos)
+    @State private var selectedFilter: AppConfig.Emotion? = nil
+    
+    // Datos pendientes post-grabación
+    @State private var pendingFileURL: URL?
+    @State private var pendingDuration: Double = 0
+    
+    // Popup modal en la misma pantalla para elegir emoción
+    @State private var showEmotionPopup = false
+    @State private var selectedEmotionForSave: AppConfig.Emotion? = nil
+    
+    // Overlay de grabación full screen con RecordButtonView
+    @State private var showQuickRecordOverlay = false
+    
     // Color de acento centralizado
     private var accent: Color { AppConfig.shared.ui.accentColor }
     
@@ -42,87 +56,62 @@ struct HomeView: View {
         return todayCount >= maxPerDay
     }
     
+    // MARK: - Filtro por emoción
+    private var entriesFiltered: [AudioEntry] {
+        guard let filter = selectedFilter else { return Array(entries) }
+        return entries.filter { entry in
+            AppConfig.Emotion.from(raw: entry.emotion) == filter
+        }
+    }
+    
+    // MARK: - Agrupación por día
+    private var groupedByDay: [(day: Date, items: [AudioEntry])] {
+        let calendar = Calendar.current
+        let groups = Dictionary(grouping: entriesFiltered) { entry in
+            calendar.startOfDay(for: entry.date ?? Date())
+        }
+        // Orden descendente por día
+        let sortedDays = groups.keys.sorted(by: >)
+        return sortedDays.map { day in
+            // Asegurar orden por fecha dentro de cada día (desc)
+            let items = (groups[day] ?? []).sorted { (a, b) in
+                (a.date ?? .distantPast) > (b.date ?? .distantPast)
+            }
+            return (day, items)
+        }
+    }
+    
     var body: some View {
         ZStack {
-            // Fondo claro unificado
-            Color(.systemGroupedBackground).ignoresSafeArea()
+            // Fondo base (centralizado)
+            AppConfig.shared.ui.backgroundColor.ignoresSafeArea()
             
-            VStack(spacing: 0) {
-                // Encabezado + Botón de grabación (fijo)
-                VStack(spacing: 16) {
-                    // Header
-                    HStack {
-                        Text("Hoy")
-                            .font(.largeTitle.bold())
-                        Spacer()
-                        if hasReachedDailyLimit {
-                            Label("Día completo", systemImage: "checkmark.seal.fill")
-                                .font(.subheadline)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(Color.green.opacity(0.15))
-                                .foregroundColor(.green)
-                                .clipShape(Capsule())
-                                .accessibilityIdentifier("savedTodayBadge")
-                        }
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 8)
-                    
-                    // Botón de grabación flotante (sin recuadro/card)
-                    VStack(spacing: 10) {
-                        RecordButtonView(recorder: recorder) { url, duration in
-                            saveEntry(url: url, duration: duration)
-                        }
-                        .disabled(player.isPlaying || hasReachedDailyLimit)
-                        .opacity((player.isPlaying || hasReachedDailyLimit) ? 0.5 : 1.0)
-                        .animation(.easeInOut, value: player.isPlaying)
-                        .animation(.easeInOut, value: hasReachedDailyLimit)
-                        
-                        // Mensajes de estado
-                        if recorder.isRecording {
-                            Text("\(Int(recorder.currentTime)) / \(Int(AppConfig.shared.audio.maxRecordingDuration))s")
-                                .font(.caption.monospacedDigit())
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(Color.blue.opacity(0.1))
-                                .clipShape(Capsule())
-                        } else if hasReachedDailyLimit {
-                            Text(limitMessage)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        } else if player.isPlaying {
-                            Text("Pausa la reproducción para grabar")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        } else {
-                            Text("Mantén presionado para grabar")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding(.bottom, 8)
+            // Contenido principal: encabezado fijo + filtros fijos + lista scrollable
+            VStack(alignment: .leading, spacing: 12) {
+                // Título fijo
+                HStack {
+                    Text("Tus audios")
+                        .font(.title.bold())
+                    Spacer()
                 }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
                 
-                // Contenido scrollable: ScrollView + LazyVStack
+                // Filtro fijo por emoción
+                EmotionFilterChips(selected: $selectedFilter)
+                    .padding(.horizontal, 16)
+                
+                // Solo la lista hace scroll
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 12) {
-                        // Título de la sección como parte del contenido
-                        if !entries.isEmpty {
-                            Text("Tus audios")
-                                .font(.title.bold())
-                                .padding(.horizontal, 16)
-                                .padding(.top, 8)
-                        }
-                        
-                        if entries.isEmpty {
+                    VStack(alignment: .leading, spacing: 0) {
+                        if entriesFiltered.isEmpty {
                             VStack(spacing: 12) {
                                 Image(systemName: "waveform")
                                     .font(.system(size: 40))
                                     .foregroundColor(.secondary)
-                                Text("Aún no tienes audios")
+                                Text("No hay audios para este filtro")
                                     .font(.headline)
-                                Text("Graba tu primer audio manteniendo presionado el botón.")
+                                Text("Graba un audio o cambia el filtro de emoción.")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                                     .multilineTextAlignment(.center)
@@ -130,22 +119,31 @@ struct HomeView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 40)
-                            .background(Color(.systemGroupedBackground))
+                            .background(AppConfig.shared.ui.backgroundColor)
                         } else {
-                            LazyVStack(spacing: 12) {
-                                ForEach(entries) { entry in
-                                    CardRow(
-                                        entry: entry,
-                                        player: player,
-                                        isDisabled: recorder.isRecording,
-                                        onDelete: { delete(entry: entry) }
-                                    )
-                                    .padding(.horizontal, 16)
-                                    .contextMenu {
-                                        Button(role: .destructive) {
-                                            delete(entry: entry)
-                                        } label: {
-                                            Label("Eliminar", systemImage: "trash")
+                            LazyVStack(alignment: .leading, spacing: 18, pinnedViews: []) {
+                                ForEach(groupedByDay, id: \.day) { group in
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        DayHeader(date: group.day)
+                                            .padding(.horizontal, 16)
+                                        
+                                        VStack(spacing: 12) {
+                                            ForEach(group.items) { entry in
+                                                CardRow(
+                                                    entry: entry,
+                                                    player: player,
+                                                    isDisabled: recorder.isRecording,
+                                                    onDelete: { delete(entry: entry) }
+                                                )
+                                                .padding(.horizontal, 16)
+                                                .contextMenu {
+                                                    Button(role: .destructive) {
+                                                        delete(entry: entry)
+                                                    } label: {
+                                                        Label("Eliminar", systemImage: "trash")
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -154,27 +152,10 @@ struct HomeView: View {
                         }
                     }
                 }
-                .background(Color(.systemGroupedBackground))
             }
+            .background(AppConfig.shared.ui.backgroundColor)
             
-            // Toast Overlay para errores de reproducción
-            if showToast, let message = player.playbackErrorMessage {
-                VStack {
-                    Spacer()
-                    Text(message)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        .background(Color.black.opacity(0.8))
-                        .cornerRadius(12)
-                        .padding(.bottom, 40)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                        .accessibilityIdentifier("toastMessage")
-                }
-                .animation(.easeInOut, value: showToast)
-            }
-            
-            // Banner permanente para usuarios normales
+            // Banner permanente para usuarios normales (queda sobre el contenido)
             if AppConfig.shared.subscription.role == .normal {
                 VStack {
                     Spacer()
@@ -206,10 +187,120 @@ struct HomeView: View {
                     .background(.ultraThinMaterial)
                     .cornerRadius(16)
                     .padding(.horizontal, 16)
-                    .padding(.bottom, 12)
+                    .padding(.bottom, 72) // dejar espacio para el FAB
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 .animation(.easeInOut, value: AppConfig.shared.subscription.role)
+            }
+            
+            // FAB flotante "GRABAR +"
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    Button {
+                        // Si alcanzó el límite, abrir sheet de planes en vez de grabar
+                        if hasReachedDailyLimit {
+                            showPlans = true
+                        } else {
+                            // Mostrar overlay de grabación
+                            showQuickRecordOverlay = true
+                            // Resetear contador si no está grabando
+                            recorder.reset()
+                            pendingFileURL = nil
+                            pendingDuration = 0
+                            // No preseleccionar emoción
+                            selectedEmotionForSave = nil
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "mic.fill")
+                            Text("GRABAR +")
+                                .font(.headline)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 14)
+                        .background(accent)
+                        .foregroundColor(.white)
+                        .clipShape(Capsule())
+                        .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 6)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 16)
+                    .accessibilityIdentifier("fabRecord")
+                }
+            }
+            
+            // Overlay full-screen para grabar en la misma pantalla
+            if showQuickRecordOverlay {
+                QuickRecordOverlay(
+                    recorder: recorder,
+                    maxDuration: AppConfig.shared.audio.maxRecordingDuration
+                ) { url, duration in
+                    // Al terminar, guardamos la URL/duración y abrimos el popup de emoción
+                    pendingFileURL = url
+                    pendingDuration = duration
+                    // No forzar emoción por defecto
+                    withAnimation(.easeInOut) { showEmotionPopup = true }
+                }
+                .transition(.opacity)
+                .zIndex(20)
+            }
+            
+            // Popup modal de emociones (no sheet): mismo screen
+            if showEmotionPopup {
+                EmotionInlinePopup(
+                    selected: $selectedEmotionForSave,
+                    onCancel: {
+                        // Si cancela, borrar archivo temporal
+                        if let url = pendingFileURL {
+                            try? FileManager.default.removeItem(at: url)
+                        }
+                        // Detener cualquier grabación residual y cerrar overlay
+                        if recorder.isRecording {
+                            recorder.stopRecording()
+                        }
+                        pendingFileURL = nil
+                        pendingDuration = 0
+                        withAnimation(.easeInOut) { showEmotionPopup = false }
+                        withAnimation(.easeInOut) { showQuickRecordOverlay = false }
+                    },
+                    onSelect: { emotion in
+                        // Guardar al seleccionar y cerrar
+                        if let url = pendingFileURL {
+                            saveEntry(url: url, duration: pendingDuration, emotion: emotion)
+                        }
+                        // Detener cualquier grabación residual y cerrar overlay
+                        if recorder.isRecording {
+                            recorder.stopRecording()
+                        }
+                        pendingFileURL = nil
+                        pendingDuration = 0
+                        withAnimation(.easeInOut) { showEmotionPopup = false }
+                        withAnimation(.easeInOut) { showQuickRecordOverlay = false }
+                    }
+                )
+                .transition(.opacity)
+                .zIndex(30)
+            }
+            
+            // Toast Overlay para errores de reproducción (legacy local)
+            if showToast, let message = player.playbackErrorMessage {
+                VStack {
+                    Spacer()
+                    Text(message)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(Color.black.opacity(0.8))
+                        .cornerRadius(12)
+                        .padding(.bottom, 40)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .accessibilityIdentifier("toastMessage")
+                }
+                .animation(.easeInOut, value: showToast)
+                .zIndex(40)
             }
         }
         .onAppear {
@@ -256,7 +347,7 @@ struct HomeView: View {
     
     // MARK: - Core Data helpers
     
-    private func saveEntry(url: URL, duration: Double) {
+    private func saveEntry(url: URL, duration: Double, emotion: AppConfig.Emotion) {
         // Evitar superar el límite diario
         if hasReachedDailyLimit {
             return
@@ -267,13 +358,17 @@ struct HomeView: View {
         entry.date = Date()
         entry.fileURL = url.path // guardamos ruta de archivo directa (sin esquema) para consistencia con normalizeURL
         entry.duration = duration
+        entry.emotion = emotion.rawValue
         
         do {
             try viewContext.save()
+            // Toast superior global
+            ToastCenter.shared.success("Audio guardado", message: "Tu grabación se añadió a la lista")
         } catch {
             // Si falla el guardado, intentamos limpiar el archivo recién creado
             try? FileManager.default.removeItem(at: url)
             print("Core Data save error: \(error)")
+            ToastCenter.shared.error("No se pudo guardar", message: "Intenta nuevamente")
         }
     }
     
@@ -292,8 +387,10 @@ struct HomeView: View {
         viewContext.delete(entry)
         do {
             try viewContext.save()
+            ToastCenter.shared.info("Audio eliminado")
         } catch {
             print("Core Data delete error: \(error)")
+            ToastCenter.shared.error("No se pudo eliminar", message: "Intenta nuevamente")
         }
     }
     
@@ -311,75 +408,190 @@ struct HomeView: View {
     }
 }
 
-// MARK: - Card Row personalizada
-private struct CardRow: View {
-    let entry: AudioEntry
-    @ObservedObject var player: AudioPlayerManager
-    let isDisabled: Bool
-    let onDelete: () -> Void
+// MARK: - QuickRecordOverlay: pantalla full-screen mínima con RecordButtonView
+
+private struct QuickRecordOverlay: View {
+    @Environment(\.dismiss) private var dismiss
+    @ObservedObject var recorder: AudioRecorderManager
+    let maxDuration: TimeInterval
+    let onFinish: (URL, Double) -> Void
     
-    @State private var showDeleteConfirm = false
+    private var accent: Color { AppConfig.shared.ui.accentColor }
     
-    var isPlaying: Bool {
-        player.currentEntryID == entry.id && player.isPlaying
+    var body: some View {
+        ZStack {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    if !recorder.isRecording {
+                        dismiss()
+                    }
+                }
+            
+            VStack(spacing: 16) {
+                HStack {
+                    Spacer()
+                    Button {
+                        if recorder.isRecording {
+                            recorder.stopRecording()
+                        }
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                
+                Spacer()
+                
+                Text(timeString(recorder.isRecording ? recorder.currentTime : 0) + " / " + timeString(maxDuration))
+                    .font(.title3.monospacedDigit().weight(.semibold))
+                    .foregroundColor(.primary)
+                    .padding(.bottom, 4)
+                
+                RecordButtonView(recorder: recorder) { url, duration in
+                    onFinish(url, duration)
+                    dismiss()
+                }
+                
+                Spacer()
+            }
+        }
+    }
+    
+    private func timeString(_ t: TimeInterval) -> String {
+        let seconds = Int(t.rounded())
+        let m = seconds / 60
+        let s = seconds % 60
+        return String(format: "%01d:%02d", m, s)
+    }
+}
+
+// MARK: - EmotionInlinePopup: popup modal en la misma pantalla
+
+private struct EmotionInlinePopup: View {
+    @Binding var selected: AppConfig.Emotion?
+    let onCancel: () -> Void
+    let onSelect: (AppConfig.Emotion) -> Void
+    
+    private var order: [AppConfig.Emotion] { AppConfig.shared.ui.emotionOrder }
+    private var map: [AppConfig.Emotion: AppConfig.UI.EmotionItem] { AppConfig.shared.ui.emotions }
+    
+    // Columnas adaptativas para iPhone/iPad
+    private var columns: [GridItem] {
+        // Mínimo 140 para que quepa imagen + texto; se adaptará a 2, 3 o más columnas
+        [GridItem(.adaptive(minimum: 140, maximum: 220), spacing: 8)]
     }
     
     var body: some View {
-        HStack(spacing: 12) {
-            Button {
-                player.toggle(entry: entry)
-            } label: {
-                Image(systemName: isPlaying ? "stop.circle.fill" : "play.circle.fill")
-                    .font(.title2)
-                    .foregroundStyle(isDisabled ? .secondary : .primary)
-            }
-            .buttonStyle(.plain)
-            .disabled(isDisabled)
+        ZStack {
+            // Fondo desenfocado
+            Rectangle()
+                .fill(Color.black.opacity(0.25))
+                .ignoresSafeArea()
+                .onTapGesture { onCancel() }
             
-            VStack(alignment: .leading, spacing: 4) {
-                Text(formattedDate(entry.date ?? Date()))
+            VStack(spacing: 12) {
+                Text("¿Cómo te sentías?")
                     .font(.headline)
-                Text("\(Int(entry.duration)) segundos")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-            
-            // Botón de eliminar a la derecha
-            Button(role: .destructive) {
-                showDeleteConfirm = true
-            } label: {
-                Image(systemName: "trash")
-                    .font(.title3)
-            }
-            .buttonStyle(.plain)
-            .tint(.red)
-            .accessibilityLabel("Eliminar audio")
-            .confirmationDialog("¿Eliminar este audio?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-                Button("Eliminar", role: .destructive) {
-                    onDelete()
+                    .padding(.top, 12)
+                
+                // Cuadrícula adaptativa
+                LazyVGrid(columns: columns, alignment: .center, spacing: 8) {
+                    ForEach(order, id: \.self) { emotion in
+                        let item = map[emotion]
+                        EmotionChip(
+                            isSelected: selected == emotion,
+                            imageName: item?.imageName,
+                            title: emotion.title,
+                            tint: item?.color ?? .gray
+                        ) {
+                            selected = emotion
+                            onSelect(emotion)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
-                Button("Cancelar", role: .cancel) {}
-            } message: {
-                Text("Esta acción no se puede deshacer.")
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                
+                Button(role: .cancel) {
+                    onCancel()
+                } label: {
+                    Text("Cancelar")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .padding(.bottom, 10)
+                }
+                .buttonStyle(.plain)
             }
+            .frame(maxWidth: 480)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color(.systemBackground))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(Color.black.opacity(0.06), lineWidth: 0.5)
+            )
+            .shadow(color: Color.black.opacity(0.2), radius: 18, x: 0, y: 10)
+            .transition(.opacity)
+            .padding(.horizontal, 16)
         }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Color.black.opacity(0.06), lineWidth: 0.5)
-        )
-        .shadow(color: Color.black.opacity(0.07), radius: 8, x: 0, y: 4)
+    }
+}
+
+private struct EmotionChip: View {
+    let isSelected: Bool
+    let imageName: String?
+    let title: String
+    let tint: Color
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                if let imageName {
+                    Image(imageName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 56, height: 56)
+                }
+                Text(title)
+                    .font(.footnote.weight(.semibold))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 12)
+            .background(background)
+            .foregroundStyle(foreground)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(border, lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
     
-    private func formattedDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        return formatter.string(from: date)
+    private var background: some ShapeStyle {
+        isSelected ? AnyShapeStyle(tint.opacity(0.18)) : AnyShapeStyle(Color(.secondarySystemBackground))
+    }
+    private var foreground: some ShapeStyle {
+        isSelected ? AnyShapeStyle(tint) : AnyShapeStyle(.primary)
+    }
+    private var border: Color {
+        isSelected ? tint : Color.black.opacity(0.08)
     }
 }

@@ -31,20 +31,26 @@ struct RecordButtonView: View {
                     .frame(width: cfg.size, height: cfg.size)
                     .scaleEffect(haloScale)
                     .opacity(haloOpacity)
-                    .blur(radius: cfg.haloBlurRadius) // difuminado suave del halo
+                    .blur(radius: cfg.haloBlurRadius)
                     .allowsHitTesting(false)
                     .animation(.easeInOut(duration: cfg.pulseDuration).repeatForever(autoreverses: true), value: breathe)
             }
             
-            // Botón principal
+            // Botón principal (idle difuminado, recording conserva estilo actual)
             Circle()
-                .fill(currentColor)
+                .fill(currentColor.opacity(recorder.isRecording ? 1.0 : cfg.idleOpacity))
                 .frame(width: cfg.size, height: cfg.size)
                 .scaleEffect(currentScale)
                 .shadow(color: currentShadowColor, radius: currentShadowRadius, x: 0, y: 4)
-                .blur(radius: currentBlurRadius) // difuminar ligeramente cuando está grabando
-                .opacity(currentOpacity) // una leve respiración de opacidad
-                .animation(.easeInOut(duration: 0.2), value: recorder.isRecording) // transición rápida al iniciar/parar
+                .blur(radius: recorder.isRecording ? cfg.recordingBlurRadius : cfg.idleBlurRadius)
+                .overlay {
+                    if cfg.idleMaterialOverlay && !recorder.isRecording {
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                    }
+                }
+                .opacity(currentOpacity)
+                .animation(.easeInOut(duration: 0.2), value: recorder.isRecording)
                 .gesture(
                     DragGesture(minimumDistance: 0)
                         .onChanged { _ in
@@ -59,7 +65,6 @@ struct RecordButtonView: View {
                         }
                 )
         }
-        // Separación extra configurable para que no se pise con el timer de abajo
         .padding(.bottom, cfg.bottomPadding)
         .onChange(of: recorder.isRecording) { _, newValue in
             if newValue {
@@ -70,12 +75,10 @@ struct RecordButtonView: View {
         }
     }
     
-    // Color actual
     private var currentColor: Color {
         recorder.isRecording ? cfg.recordingColor : cfg.idleColor
     }
     
-    // Escala del botón según estado
     private var currentScale: CGFloat {
         if recorder.isRecording {
             return breathe ? cfg.pulseScale : cfg.baseScale
@@ -84,19 +87,12 @@ struct RecordButtonView: View {
         }
     }
     
-    // Escala del halo según estado de respiración
     private var haloScale: CGFloat {
         breathe ? cfg.haloMaxScale : cfg.haloMinScale
     }
     
-    // Opacidad del halo según estado de respiración
     private var haloOpacity: Double {
         breathe ? cfg.haloMaxOpacity : cfg.haloMinOpacity
-    }
-    
-    // Difuminado y sombra cuando está grabando (para que se vea menos estático)
-    private var currentBlurRadius: CGFloat {
-        recorder.isRecording ? cfg.recordingBlurRadius : 0
     }
     
     private var currentShadowRadius: CGFloat {
@@ -107,7 +103,6 @@ struct RecordButtonView: View {
         recorder.isRecording ? cfg.recordingShadowColor : cfg.idleShadowColor
     }
     
-    // Pequeña respiración de opacidad para que no sea plano
     private var currentOpacity: Double {
         guard recorder.isRecording else { return 1.0 }
         return breathe ? cfg.recordingOpacityLow : 1.0
@@ -129,7 +124,6 @@ struct RecordButtonView: View {
     }
     
     private func startBreathing() {
-        // Reinicia el estado y lanza animación cíclica
         breathe = false
         withAnimation(.easeInOut(duration: cfg.pulseDuration).repeatForever(autoreverses: true)) {
             breathe = true
@@ -137,8 +131,6 @@ struct RecordButtonView: View {
     }
     
     private func stopBreathing() {
-        // Detener el pulso y volver a estado base
         breathe = false
     }
 }
-

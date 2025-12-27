@@ -9,39 +9,32 @@ import SwiftUI
 
 struct PlansView: View {
     @Environment(\.dismiss) private var dismiss
-    
-    // Persistencia del rol para toda la app
     @AppStorage("user.role") private var storedUserRoleRaw: String = AppConfig.UserRole.normal.rawValue
-    
     @State private var selectedPlan: Plan = .proMonthly
-    
-    // Fuente única de color de acento
     private var accent: Color { AppConfig.shared.ui.accentColor }
     
     enum Plan: String, CaseIterable, Identifiable {
-        case proMonthly
-        case proYearly
-        
+        case proMonthly, proYearly, unlimited
         var id: String { rawValue }
-        
         var title: String {
             switch self {
             case .proMonthly: return "PRO Mensual"
             case .proYearly: return "PRO Anual"
+            case .unlimited: return "ILIMITADO"
             }
         }
-        
         var price: String {
             switch self {
             case .proMonthly: return "US$ 3.99/mes"
             case .proYearly: return "US$ 29.99/año"
+            case .unlimited: return "US$ 59.99/año"
             }
         }
-        
         var footnote: String {
             switch self {
             case .proMonthly: return "Cancela cuando quieras."
             case .proYearly: return "Ahorra 37% vs mensual."
+            case .unlimited: return "Audios sin límite. 2 minutos por audio."
             }
         }
     }
@@ -49,31 +42,33 @@ struct PlansView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                Text("Elige tu plan PRO")
+                Text("Elige tu plan")
                     .font(.largeTitle.bold())
                     .frame(maxWidth: .infinity, alignment: .leading)
                 
-                BenefitRow(icon: "mic.fill", title: "Graba más por día", subtitle: "Hasta 5 audios diarios", accent: accent)
-                BenefitRow(icon: "tray.full.fill", title: "Más historial", subtitle: "Conserva tus audios por 30 días", accent: accent)
-                BenefitRow(icon: "waveform", title: "Mejoras futuras", subtitle: "Acceso prioritario a novedades", accent: accent)
+                BenefitRow(icon: "mic.fill", title: "Graba más por día", subtitle: "Hasta 5 audios diarios en PRO. Sin límite en ILIMITADO.", accent: accent)
+                BenefitRow(icon: "timer", title: "Duración por audio", subtitle: "30s Normal, 60s PRO, 120s ILIMITADO", accent: accent)
+                BenefitRow(icon: "tray.full.fill", title: "Más historial", subtitle: "7/30/90 días según plan", accent: accent)
                 
                 VStack(spacing: 12) {
                     ForEach(Plan.allCases) { plan in
                         PlanCard(plan: plan, isSelected: selectedPlan == plan, accent: accent)
                             .onTapGesture {
-                                withAnimation(.smooth) {
-                                    selectedPlan = plan
-                                }
+                                withAnimation(.smooth) { selectedPlan = plan }
                             }
                     }
                 }
                 .padding(.top, 8)
                 
                 Button {
-                    // Aquí integrarás tu flujo de compra (StoreKit)
-                    // Simulación: marcar usuario como PRO y persistirlo
-                    AppConfig.shared.subscription.role = .pro
-                    storedUserRoleRaw = AppConfig.UserRole.pro.rawValue
+                    switch selectedPlan {
+                    case .proMonthly, .proYearly:
+                        AppConfig.shared.subscription.role = .pro
+                        storedUserRoleRaw = AppConfig.UserRole.pro.rawValue
+                    case .unlimited:
+                        AppConfig.shared.subscription.role = .unlimited
+                        storedUserRoleRaw = AppConfig.UserRole.unlimited.rawValue
+                    }
                     dismiss()
                 } label: {
                     Text("Suscribirme a \(selectedPlan.title)")
@@ -86,12 +81,8 @@ struct PlansView: View {
                 }
                 .padding(.top, 8)
                 
-                Button {
-                    dismiss()
-                } label: {
-                    Text("Más tarde")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                Button { dismiss() } label: {
+                    Text("Más tarde").font(.subheadline).foregroundColor(.secondary)
                 }
                 .padding(.top, 4)
             }
@@ -99,7 +90,7 @@ struct PlansView: View {
         }
         .navigationTitle("Planes y precios")
         .navigationBarTitleDisplayMode(.inline)
-        .background(Color(.systemBackground))
+        .background(AppConfig.shared.ui.backgroundColor)
     }
 }
 
@@ -126,7 +117,7 @@ private struct BenefitRow: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppConfig.shared.ui.cardBackgroundColor)
         )
     }
 }
@@ -153,17 +144,11 @@ private struct PlanCard: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppConfig.shared.ui.cardBackgroundColor)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(isSelected ? accent : Color.black.opacity(0.06), lineWidth: isSelected ? 2 : 0.5)
         )
-    }
-}
-
-#Preview {
-    NavigationStack {
-        PlansView()
     }
 }

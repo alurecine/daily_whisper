@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import CoreData
+internal import CoreData
 import Charts
 
 struct DashboardView: View {
@@ -21,6 +21,14 @@ struct DashboardView: View {
         animation: .default
     )
     private var allEntries: FetchedResults<AudioEntry>
+    
+    // ÚNICA FUENTE DE VERDAD: Usuario desde Core Data (traer 1)
+    @FetchRequest(
+        sortDescriptors: [],
+        predicate: nil,
+        animation: .default
+    )
+    private var users: FetchedResults<User>
     
     // Player local (si lo necesitas en el futuro)
     @StateObject private var player = AudioPlayerManager()
@@ -108,9 +116,51 @@ struct DashboardView: View {
         }
     }
     
+    // Usuario actual (si no existe, placeholder)
+    private var currentUser: User? {
+        users.first
+    }
+    private var displayName: String {
+        if let name = currentUser?.value(forKey: "name") as? String, !name.isEmpty {
+            return name
+        }
+        return "Tu nombre"
+    }
+    private var avatarImage: Image {
+        if let data = currentUser?.value(forKey: "profileImageData") as? Data,
+           let uiImage = UIImage(data: data) {
+            return Image(uiImage: uiImage)
+        }
+        return Image(systemName: "person.crop.circle.fill")
+    }
+    
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 24) {
+                
+                // Header de bienvenida + avatar + badge de plan
+                HStack(alignment: .center, spacing: 12) {
+                    avatarImage
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 44, height: 44)
+                        .clipShape(Circle())
+                        .overlay(
+                            Circle()
+                                .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                        )
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Hola, \(displayName)")
+                            .font(.title2.bold())
+                        Text("Qué bueno verte por aquí")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    PlanBadge(role: AppConfig.shared.subscription.role, accent: accent)
+                }
+                .padding(.horizontal, 16)
                 
                 // Promo PRO (solo usuarios normales)
                 if AppConfig.shared.subscription.role == .normal {
@@ -147,7 +197,7 @@ struct DashboardView: View {
                     }
                 }
                 
-                // Sección: Recomendaciones (restaurada)
+                // Sección: Recomendaciones
                 SectionHeader("Recomendaciones")
                 RecommendationsCarousel(items: recommendations) { item in
                     selectedRecommendation = item
@@ -172,7 +222,7 @@ struct DashboardView: View {
             }
             .padding(.vertical, 16)
         }
-        .background(Color(.systemBackground))
+        .background(AppConfig.shared.ui.backgroundColor)
         // Sheet basada en item: garantiza contenido desde el primer render
         .sheet(item: $selectedRecommendation) { item in
             RecommendationDetailSheet(item: item)
@@ -271,7 +321,7 @@ private struct PlaceholderCard: View {
     
     var body: some View {
         RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .fill(Color(.secondarySystemBackground))
+            .fill(AppConfig.shared.ui.cardBackgroundColor)
             .frame(height: height)
             .overlay(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -336,7 +386,7 @@ private struct NewsCard: View {
         .frame(width: 300, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppConfig.shared.ui.cardBackgroundColor)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -405,7 +455,7 @@ private struct RecommendationCard: View {
         .frame(width: 300, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppConfig.shared.ui.cardBackgroundColor)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -463,7 +513,7 @@ private struct RecommendationDetailSheet: View {
                     .padding(16)
             }
         }
-        .background(Color(.systemBackground))
+        .background(AppConfig.shared.ui.cardBackgroundColor)
     }
 }
 
@@ -509,7 +559,7 @@ private struct PromoProCard: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppConfig.shared.ui.cardBackgroundColor)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -579,7 +629,7 @@ private struct MiniWeekCard: View {
         .frame(width: 150, height: 80, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppConfig.shared.ui.cardBackgroundColor)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -643,7 +693,7 @@ private struct ActivityChart: View {
         .chartYScale(domain: 0...(maxY + 1))
         .chartPlotStyle { plotArea in
             plotArea
-                .background(Color(.secondarySystemBackground))
+                .background(AppConfig.shared.ui.cardBackgroundColor)
                 .cornerRadius(12)
         }
     }
@@ -657,6 +707,42 @@ private struct ActivityChart: View {
     
     private var maxY: Int {
         data.map(\.count).max() ?? 0
+    }
+}
+
+// MARK: - Badge de plan actual
+
+private struct PlanBadge: View {
+    let role: AppConfig.UserRole
+    let accent: Color
+    
+    var body: some View {
+        switch role {
+        case .normal:
+            Text("Normal")
+                .font(.caption.weight(.semibold))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.orange.opacity(0.15))
+                .foregroundColor(.orange)
+                .clipShape(Capsule())
+        case .pro:
+            Text("PRO")
+                .font(.caption.weight(.semibold))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(accent.opacity(0.15))
+                .foregroundColor(accent)
+                .clipShape(Capsule())
+        case .unlimited:
+            Text("ILIMITADO")
+                .font(.caption.weight(.semibold))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.purple.opacity(0.15))
+                .foregroundColor(.purple)
+                .clipShape(Capsule())
+        }
     }
 }
 
