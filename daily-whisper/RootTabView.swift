@@ -35,6 +35,7 @@ struct RootTabView: View {
                 DashboardView(selectedTab: selectedTab)
                     .navigationTitle("Dashboard")
                     .navigationBarTitleDisplayMode(.inline)
+                    .navigationBarBackButtonHidden(true) // Oculta "Atrás" en el primer tab
             }
             .tabItem {
                 Label("Dashboard", systemImage: "rectangle.grid.2x2.fill")

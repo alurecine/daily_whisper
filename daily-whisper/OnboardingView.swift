@@ -1,0 +1,310 @@
+import SwiftUI
+import AVFoundation
+import UserNotifications
+
+struct OnboardingView: View {
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
+    @State private var currentIndex: Int = 0
+    
+    // Estado de permisos
+    @State private var micStatus: AVAudioSession.RecordPermission = .undetermined
+    @State private var notifStatus: UNAuthorizationStatus = .notDetermined
+    
+    private var accent: Color { AppConfig.shared.ui.accentColor }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Spacer()
+                Button("Saltar") {
+                    finish()
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(.secondary)
+                .padding(.top, 8)
+                .padding(.trailing, 16)
+            }
+            
+            TabView(selection: $currentIndex) {
+                OnboardingIntroPage()
+                    .tag(0)
+                    .padding(.horizontal, 24)
+                
+                OnboardingPlansPage(accent: accent)
+                    .tag(1)
+                    .padding(.horizontal, 24)
+                
+                OnboardingPermissionsPage(
+                    micStatus: micStatus,
+                    notifStatus: notifStatus,
+                    requestMic: requestMic,
+                    requestNotifications: requestNotifications
+                )
+                .tag(2)
+                .padding(.horizontal, 24)
+            }
+            .tabViewStyle(.page(indexDisplayMode: .always))
+            
+            HStack(spacing: 12) {
+                Button(action: previous) {
+                    Text("Atrás")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.secondary.opacity(0.12))
+                        .foregroundColor(.primary)
+                        .cornerRadius(12)
+                }
+                .disabled(currentIndex == 0)
+                
+                Button(action: nextOrFinish) {
+                    Text(currentIndex == 2 ? "Empezar" : "Continuar")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(accent)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 16)
+        }
+        .background(AppConfig.shared.ui.backgroundColor.ignoresSafeArea())
+        .onAppear {
+            refreshPermissionStates()
+        }
+    }
+    
+    private func previous() {
+        guard currentIndex > 0 else { return }
+        withAnimation { currentIndex -= 1 }
+    }
+    private func nextOrFinish() {
+        if currentIndex < 2 {
+            withAnimation { currentIndex += 1 }
+        } else {
+            finish()
+        }
+    }
+    private func finish() {
+        hasCompletedOnboarding = true
+    }
+    
+    // MARK: - Permisos
+    private func refreshPermissionStates() {
+        micStatus = AVAudioSession.sharedInstance().recordPermission
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            DispatchQueue.main.async {
+                notifStatus = settings.authorizationStatus
+            }
+        }
+    }
+    
+    private func requestMic() {
+        AVAudioSession.sharedInstance().requestRecordPermission { granted in
+            DispatchQueue.main.async {
+                self.micStatus = AVAudioSession.sharedInstance().recordPermission
+            }
+        }
+    }
+    
+    private func requestNotifications() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
+            DispatchQueue.main.async {
+                self.refreshPermissionStates()
+            }
+        }
+    }
+}
+
+private struct OnboardingIntroPage: View {
+    var body: some View {
+        VStack(spacing: 20) {
+            Spacer(minLength: 0)
+            ZStack {
+                Circle()
+                    .fill(AppConfig.shared.ui.accentColor.opacity(0.15))
+                    .frame(width: 160, height: 160)
+                Image(systemName: "mic.fill")
+                    .font(.system(size: 64, weight: .semibold))
+                    .foregroundStyle(AppConfig.shared.ui.accentColor)
+            }
+            Text("Graba. Etiqueta. Reflexiona.")
+                .font(.title2.bold())
+                .multilineTextAlignment(.center)
+            Text("Captura tus ideas en audios cortos, etiquétalas por emoción y descubre patrones en tu semana.")
+                .font(.body)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 8)
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+private struct OnboardingPlansPage: View {
+    let accent: Color
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            Spacer(minLength: 0)
+            Image(systemName: "star.circle.fill")
+                .font(.system(size: 64))
+                .foregroundStyle(accent)
+                .padding(.bottom, 8)
+            
+            Text("Planes y beneficios")
+                .font(.title2.bold())
+            
+            VStack(spacing: 12) {
+                PlanRow(title: "Normal", subtitle: "1 audio por día • 7 días de historial • 30s por audio", icon: "person.crop.circle")
+                PlanRow(title: "PRO", subtitle: "5 audios por día • 30 días de historial • 60s por audio", icon: "crown.fill")
+                PlanRow(title: "ILIMITADO", subtitle: "Sin límite por día • 90 días de historial • 120s por audio", icon: "infinity")
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(AppConfig.shared.ui.cardBackgroundColor)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(Color.black.opacity(0.06), lineWidth: 0.5)
+            )
+            
+            Spacer(minLength: 0)
+        }
+    }
+    
+    private struct PlanRow: View {
+        let title: String
+        let subtitle: String
+        let icon: String
+        
+        var body: some View {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundStyle(AppConfig.shared.ui.accentColor)
+                    .frame(width: 34, height: 34)
+                    .background(AppConfig.shared.ui.accentColor.opacity(0.12))
+                    .clipShape(Circle())
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).font(.headline)
+                    Text(subtitle).font(.subheadline).foregroundColor(.secondary)
+                }
+                Spacer()
+            }
+            .padding(10)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(AppConfig.shared.ui.cardBackgroundColor)
+            )
+        }
+    }
+}
+
+private struct OnboardingPermissionsPage: View {
+    let micStatus: AVAudioSession.RecordPermission
+    let notifStatus: UNAuthorizationStatus
+    let requestMic: () -> Void
+    let requestNotifications: () -> Void
+    
+    private func statusTextMic(_ status: AVAudioSession.RecordPermission) -> String {
+        switch status {
+        case .undetermined: return "No solicitado"
+        case .denied: return "Denegado"
+        case .granted: return "Concedido"
+        @unknown default: return "Desconocido"
+        }
+    }
+    private func statusTextNotif(_ status: UNAuthorizationStatus) -> String {
+        switch status {
+        case .notDetermined: return "No solicitado"
+        case .denied: return "Denegado"
+        case .authorized, .provisional, .ephemeral: return "Concedido"
+        @unknown default: return "Desconocido"
+        }
+    }
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            Spacer(minLength: 0)
+            Image(systemName: "checkmark.shield.fill")
+                .font(.system(size: 64))
+                .foregroundStyle(.green)
+                .padding(.bottom, 8)
+            
+            Text("Permisos necesarios")
+                .font(.title2.bold())
+            
+            VStack(spacing: 12) {
+                PermissionRow(
+                    title: "Micrófono",
+                    subtitle: "Para grabar tus audios.",
+                    status: statusTextMic(micStatus),
+                    actionTitle: micStatus == .granted ? "Listo" : "Permitir",
+                    action: requestMic
+                )
+                PermissionRow(
+                    title: "Notificaciones",
+                    subtitle: "Para avisarte de recordatorios.",
+                    status: statusTextNotif(notifStatus),
+                    actionTitle: (notifStatus == .authorized || notifStatus == .provisional || notifStatus == .ephemeral) ? "Listo" : "Permitir",
+                    action: requestNotifications
+                )
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(AppConfig.shared.ui.cardBackgroundColor)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(Color.black.opacity(0.06), lineWidth: 0.5)
+            )
+            
+            Text("Puedes cambiar estos permisos desde Ajustes en cualquier momento.")
+                .font(.footnote)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 16)
+            
+            Spacer(minLength: 0)
+        }
+    }
+    
+    private struct PermissionRow: View {
+        let title: String
+        let subtitle: String
+        let status: String
+        let actionTitle: String
+        let action: () -> Void
+        
+        var body: some View {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title).font(.headline)
+                    Text(subtitle).font(.subheadline).foregroundColor(.secondary)
+                }
+                Spacer()
+                Text(status)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Button(actionTitle) {
+                    action()
+                }
+                .font(.subheadline.weight(.semibold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(AppConfig.shared.ui.accentColor.opacity(0.15))
+                .clipShape(Capsule())
+            }
+            .padding(10)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(AppConfig.shared.ui.cardBackgroundColor)
+            )
+        }
+    }
+}

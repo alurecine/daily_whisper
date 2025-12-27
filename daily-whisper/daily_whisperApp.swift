@@ -42,7 +42,8 @@ struct daily_whisperApp: App {
             let content = Group {
                 switch lockState {
                 case .unlocked:
-                    RootTabView()
+                    // USAR RootView en lugar de RootTabView
+                    RootView()
                         .environment(\.managedObjectContext, persistenceController.container.viewContext)
                         .onAppear { wasUnlockedOnce = true }
                 case .locked, .unlocking:
@@ -70,11 +71,10 @@ struct daily_whisperApp: App {
                         storedUserRoleRaw = AppConfig.UserRole.normal.rawValue
                     }
                     
-                    // Asegurar que el límite diario arranque correcto (redundante, pero explícito)
+                    // Asegurar que el límite diario arranque correcto
                     AppConfig.shared.audio.maxEntriesPerDay = AppConfig.shared.policy.maxEntriesPerDay
                 }
                 .onChange(of: storedUserRoleRaw) { _, newValue in
-                    // Cualquier cambio de rol persistido actualiza AppConfig en caliente
                     let role = AppConfig.UserRole(rawValue: newValue) ?? .normal
                     AppConfig.shared.subscription.role = role
                 }
