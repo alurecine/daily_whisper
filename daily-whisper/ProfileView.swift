@@ -250,6 +250,7 @@ struct ProfileView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            .scrollIndicators(.hidden) // Ocultar indicador de scroll del Form
             .onChange(of: pickedItem) { _, newValue in
                 Task { await loadPickedPhoto(newValue) }
             }

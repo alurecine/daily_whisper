@@ -102,7 +102,7 @@ struct HomeView: View {
                     .padding(.horizontal, 16)
                 
                 // Solo la lista hace scroll
-                ScrollView {
+                ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 0) {
                         if entriesFiltered.isEmpty {
                             VStack(spacing: 12) {
