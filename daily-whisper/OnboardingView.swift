@@ -130,10 +130,10 @@ private struct OnboardingIntroPage: View {
                     .font(.system(size: 64, weight: .semibold))
                     .foregroundStyle(AppConfig.shared.ui.accentColor)
             }
-            Text("Graba. Etiqueta. Reflexiona.")
+            Text("Hablar también es cuidarte.")
                 .font(.title2.bold())
                 .multilineTextAlignment(.center)
-            Text("Captura tus ideas en audios cortos, etiquétalas por emoción y descubre patrones en tu semana.")
+            Text("Graba pensamientos en audios breves, dales una emoción y empieza a entenderte mejor, día a día.")
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -154,13 +154,13 @@ private struct OnboardingPlansPage: View {
                 .foregroundStyle(accent)
                 .padding(.bottom, 8)
             
-            Text("Planes y beneficios")
+            Text("Elegí cómo acompañarte")
                 .font(.title2.bold())
             
             VStack(spacing: 12) {
-                PlanRow(title: "Normal", subtitle: "1 audio por día • 7 días de historial • 30s por audio", icon: "person.crop.circle")
-                PlanRow(title: "PRO", subtitle: "5 audios por día • 30 días de historial • 60s por audio", icon: "crown.fill")
-                PlanRow(title: "ILIMITADO", subtitle: "Sin límite por día • 90 días de historial • 120s por audio", icon: "infinity")
+                PlanRow(title: "Normal", subtitle: "Un espacio diario para escucharte • 1 audio por día • Últimos 7 días • Hasta 30 segundos", icon: "person.crop.circle")
+                PlanRow(title: "PRO", subtitle: "Más tiempo, más continuidad • Hasta 5 audios por día • 30 días de historial • Hasta 60 segundos", icon: "crown.fill")
+                PlanRow(title: "ILIMITADO", subtitle: "Todo lo que necesites decir • Audios sin límite • 90 días de historial • Hasta 2 minutos por audio", icon: "infinity")
             }
             .padding(16)
             .background(
@@ -235,20 +235,20 @@ private struct OnboardingPermissionsPage: View {
                 .foregroundStyle(.green)
                 .padding(.bottom, 8)
             
-            Text("Permisos necesarios")
+            Text("Permisos necesarios para poder escucharte")
                 .font(.title2.bold())
             
             VStack(spacing: 12) {
                 PermissionRow(
                     title: "Micrófono",
-                    subtitle: "Para grabar tus audios.",
+                    subtitle: "Para que puedas expresar lo que sentís.",
                     status: statusTextMic(micStatus),
                     actionTitle: micStatus == .granted ? "Listo" : "Permitir",
                     action: requestMic
                 )
                 PermissionRow(
                     title: "Notificaciones",
-                    subtitle: "Para avisarte de recordatorios.",
+                    subtitle: "Para acompañarte con recordatorios suaves.",
                     status: statusTextNotif(notifStatus),
                     actionTitle: (notifStatus == .authorized || notifStatus == .provisional || notifStatus == .ephemeral) ? "Listo" : "Permitir",
                     action: requestNotifications
@@ -264,11 +264,11 @@ private struct OnboardingPermissionsPage: View {
                     .stroke(Color.black.opacity(0.06), lineWidth: 0.5)
             )
             
-            Text("Puedes cambiar estos permisos desde Ajustes en cualquier momento.")
+            Text("Vos tenés el control. Podés cambiar estos permisos cuando quieras desde Ajustes.")
                 .font(.footnote)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 30)
             
             Spacer(minLength: 0)
         }

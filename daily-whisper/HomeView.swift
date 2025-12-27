@@ -418,6 +418,35 @@ private struct QuickRecordOverlay: View {
     
     private var accent: Color { AppConfig.shared.ui.accentColor }
     
+    // Frases
+    let recordingPrompts: [String] = [
+        "Este es tu momento.",
+        "Podés hablar con libertad.",
+        "Decí lo que tengas en mente.",
+        "No tiene que ser perfecto.",
+        "No hay respuestas correctas.",
+        "Estoy acá para escucharte.",
+        "Hablá como si fuera solo para vos.",
+        "Todo lo que digas está bien.",
+        "Podés empezar cuando quieras.",
+        "No hace falta ordenar tus ideas.",
+        "Decilo como salga.",
+        "Respirá hondo… y hablá.",
+        "No hay apuro.",
+        "Este espacio es tuyo.",
+        "Nadie más lo escucha.",
+        "Podés decirlo en voz baja.",
+        "No tenés que explicarlo todo.",
+        "Decí solo una cosa, si querés.",
+        "Podés parar cuando lo sientas.",
+        "Escucharte también es cuidarte."
+    ]
+    
+    // Estado: dos índices y timer cada 4s
+    @State private var currentPromptIndex1: Int = 0
+    @State private var currentPromptIndex2: Int = 1
+    private let promptTimer = Timer.publish(every: 4.0, on: .main, in: .common).autoconnect()
+    
     var body: some View {
         ZStack {
             Rectangle()
@@ -449,17 +478,71 @@ private struct QuickRecordOverlay: View {
                 
                 Spacer()
                 
+                // Bloque de dos frases (encima del botón), bien legibles
+                if !recordingPrompts.isEmpty {
+                    VStack(spacing: 6) {
+                        Text(recordingPrompts[safe: currentPromptIndex1] ?? "")
+                            .font(.title2.weight(.semibold))
+                            .multilineTextAlignment(.center)
+                            .foregroundColor(.primary)
+                            .padding(.horizontal, 28)
+                            .transition(.opacity)
+                            .id(currentPromptIndex1)
+                        
+                        Text(recordingPrompts[safe: currentPromptIndex2] ?? "")
+                            .font(.title3.weight(.semibold))
+                            .multilineTextAlignment(.center)
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 28)
+                            .transition(.opacity)
+                            .id(currentPromptIndex2)
+                    }
+                    .padding(.bottom, 36) // +30 pts extra de separación vs antes
+                }
+                
+                // Temporizador
                 Text(timeString(recorder.isRecording ? recorder.currentTime : 0) + " / " + timeString(maxDuration))
                     .font(.title3.monospacedDigit().weight(.semibold))
                     .foregroundColor(.primary)
                     .padding(.bottom, 4)
                 
+                // Botón de grabación
                 RecordButtonView(recorder: recorder) { url, duration in
                     onFinish(url, duration)
                     dismiss()
                 }
                 
                 Spacer()
+            }
+        }
+        .onAppear {
+            // Elegir dos frases iniciales distintas
+            guard !recordingPrompts.isEmpty else { return }
+            currentPromptIndex1 = Int.random(in: 0..<recordingPrompts.count)
+            if recordingPrompts.count > 1 {
+                repeat {
+                    currentPromptIndex2 = Int.random(in: 0..<recordingPrompts.count)
+                } while currentPromptIndex2 == currentPromptIndex1
+            } else {
+                currentPromptIndex2 = currentPromptIndex1
+            }
+        }
+        .onReceive(promptTimer) { _ in
+            guard !recordingPrompts.isEmpty else { return }
+            let count = recordingPrompts.count
+            var next1 = Int.random(in: 0..<count)
+            var next2 = Int.random(in: 0..<count)
+            if count > 1 {
+                // Evitar repetir el mismo par y evitar que coincidan entre sí
+                repeat { next1 = Int.random(in: 0..<count) } while next1 == currentPromptIndex1
+                repeat { next2 = Int.random(in: 0..<count) } while next2 == currentPromptIndex2 || next2 == next1
+            } else {
+                next1 = currentPromptIndex1
+                next2 = currentPromptIndex2
+            }
+            withAnimation(.easeInOut(duration: 0.25)) {
+                currentPromptIndex1 = next1
+                currentPromptIndex2 = next2
             }
         }
     }
@@ -469,6 +552,15 @@ private struct QuickRecordOverlay: View {
         let m = seconds / 60
         let s = seconds % 60
         return String(format: "%01d:%02d", m, s)
+    }
+}
+
+// MARK: - helpers de índice seguro
+
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        guard indices.contains(index) else { return nil }
+        return self[index]
     }
 }
 
