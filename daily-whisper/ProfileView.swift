@@ -32,7 +32,7 @@ struct ProfileView: View {
     // Rol persistido (se mantiene en AppStorage)
     @AppStorage("user.role") private var storedUserRoleRaw: String = AppConfig.UserRole.normal.rawValue
     
-    // NUEVO: Flag para controlar el estado del onboarding desde Perfil
+    // Flag para controlar el estado del onboarding desde Perfil (debug)
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
     
     // Color de acento centralizado
@@ -124,7 +124,7 @@ struct ProfileView: View {
                         .opacity(useSystemAppearance ? 0.5 : 1)
                 }
                 
-                // Suscripción
+                // Suscripción (estado actual + acceso a planes)
                 Section(header: Text("Suscripción")) {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
@@ -168,6 +168,26 @@ struct ProfileView: View {
                     } label: {
                         Label("Ver planes y precios", systemImage: "creditcard.fill")
                     }
+                }
+                
+                // NUEVO: Selector rápido de rol de suscripción (debug)
+                Section(header: Text("Suscripción (debug)")) {
+                    Picker("Rol actual", selection: Binding(
+                        get: { AppConfig.shared.subscription.role },
+                        set: { newRole in
+                            AppConfig.shared.subscription.role = newRole
+                            storedUserRoleRaw = newRole.rawValue
+                        }
+                    )) {
+                        Text("Normal").tag(AppConfig.UserRole.normal)
+                        Text("PRO").tag(AppConfig.UserRole.pro)
+                        Text("ILIMITADO").tag(AppConfig.UserRole.unlimited)
+                    }
+                    .pickerStyle(.segmented)
+                    Text("Usa este control solo para pruebas. Persistimos el rol en AppStorage para que el resto de la app reaccione.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 
                 // Notificaciones
@@ -220,11 +240,11 @@ struct ProfileView: View {
                     }
                 }
                 
-                // NUEVO: Sección para controlar el estado del Onboarding
+                // Onboarding (debug)
                 Section(header: Text("Onboarding")) {
                     Toggle("Marcar onboarding como completado", isOn: $hasCompletedOnboarding)
                     Text(hasCompletedOnboarding ? "El onboarding está marcado como completado. Al iniciar, la app irá directo al flujo normal." :
-                         "El onboarding NO está completado. Al iniciar, podrás ver la pantalla de elección o el flujo de onboarding.")
+                         "El onboarding NO está completado. Al iniciar, verás el onboarding.")
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)

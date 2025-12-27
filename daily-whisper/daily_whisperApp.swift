@@ -45,7 +45,11 @@ struct daily_whisperApp: App {
                     // USAR RootView en lugar de RootTabView
                     RootView()
                         .environment(\.managedObjectContext, persistenceController.container.viewContext)
-                        .onAppear { wasUnlockedOnce = true }
+                        .onAppear { 
+                            wasUnlockedOnce = true
+                            // Migración de rutas antiguas -> solo nombre de archivo
+                            migrateAudioEntryPaths(context: persistenceController.container.viewContext)
+                        }
                 case .locked, .unlocking:
                     LockView(
                         title: "Protegido con Face ID",
@@ -94,6 +98,42 @@ struct daily_whisperApp: App {
                     guard lockState == .unlocked else { return }
                     authenticateBiometricsFirst()
                 }
+        }
+    }
+    
+    // MARK: - Migración de rutas de audio a nombre de archivo
+    private func migrateAudioEntryPaths(context: NSManagedObjectContext) {
+        let request: NSFetchRequest<AudioEntry> = AudioEntry.fetchRequest()
+        do {
+            let entries = try context.fetch(request)
+            var didChange = false
+            for entry in entries {
+                guard let stored = entry.fileURL, !stored.isEmpty else { continue }
+                
+                let lower = stored.lowercased()
+                // Ignorar remotos
+                if lower.hasPrefix("http://") || lower.hasPrefix("https://") { continue }
+                
+                // Extraer fileName desde cualquier forma
+                let fileName: String
+                if stored.hasPrefix("file://"), let url = URL(string: stored) {
+                    fileName = url.lastPathComponent
+                } else {
+                    fileName = URL(fileURLWithPath: stored).lastPathComponent
+                }
+                
+                // Si ya está normalizado, nada que hacer
+                if stored == fileName { continue }
+                
+                // Actualizar al nombre de archivo
+                entry.fileURL = fileName
+                didChange = true
+            }
+            if didChange {
+                try context.save()
+            }
+        } catch {
+            print("Migración de rutas falló:", error)
         }
     }
     
@@ -149,3 +189,4 @@ struct PersistenceController {
         }
     }
 }
+

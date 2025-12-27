@@ -47,7 +47,6 @@ struct DashboardView: View {
     
     // Rango seleccionado para el gráfico (local a la sesión)
     enum ChartRange: String, CaseIterable, Identifiable {
-        case day = "Día"
         case week = "Semana"
         case month = "Mes"
         var id: String { rawValue }
@@ -203,22 +202,30 @@ struct DashboardView: View {
                     selectedRecommendation = item
                 }
                 
-                // Sección: Resumen (gráfico) con Picker debajo del título
+                // Sección: Resumen (gráfico) visible solo para PRO o ILIMITADO
                 VStack(alignment: .leading, spacing: 10) {
                     SectionHeader("Resumen de actividad")
-                    Picker("", selection: $chartRange) {
-                        Text("D").tag(ChartRange.day)
-                        Text("S").tag(ChartRange.week)
-                        Text("M").tag(ChartRange.month)
+                    VStack {
+                        if AppConfig.shared.subscription.role == .pro || AppConfig.shared.subscription.role == .unlimited {
+                            Picker("", selection: $chartRange) {
+                                Text("S").tag(ChartRange.week)
+                                Text("M").tag(ChartRange.month)
+                            }
+                            .pickerStyle(.segmented)
+                            .frame(maxWidth: 160)
+                            
+                            ActivityChart(data: chartData, range: chartRange)
+                                .frame(height: 220)
+                                .padding(.top, 4)
+                        } else {
+                            // Bloqueado para usuarios Normal
+                            LockedStatsCard(accent: accent) {
+                                showPlans = true
+                            }
+                        }
                     }
-                    .pickerStyle(.segmented)
-                    .frame(maxWidth: 200)
-                    
-                    ActivityChart(data: chartData, range: chartRange)
-                        .frame(height: 220)
-                        .padding(.top, 4)
+                    .padding(.horizontal, 16)
                 }
-                .padding(.horizontal, 16)
             }
             .padding(.vertical, 16)
         }
@@ -241,33 +248,11 @@ struct DashboardView: View {
     
     private var chartData: [TimeCount] {
         switch chartRange {
-        case .day:
-            return hourlyActivityLast24h
         case .week:
             return dailyActivityLast7d
         case .month:
             return dailyActivityLast30d
         }
-    }
-    
-    private var hourlyActivityLast24h: [TimeCount] {
-        let hours = (0..<24).map { offset -> Date in
-            let date = Date().addingTimeInterval(-Double(offset) * 3600)
-            let start = Calendar.current.date(bySettingHour: 0, minute: 0, second: 0, of: date) ?? date
-            return start
-        }
-        var counts: [Date: Int] = [:]
-        for entry in allEntries {
-            guard let d = entry.date else { continue }
-            // Redondear a la hora exacta (minuto y segundo en 0)
-            let hour = Calendar.current.component(.hour, from: d)
-            let startHour = Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: d) ?? d
-            if let minHour = hours.last, startHour >= minHour {
-                counts[startHour, default: 0] += 1
-            }
-        }
-        let sorted = hours.sorted()
-        return sorted.map { TimeCount(date: $0, count: counts[$0, default: 0]) }
     }
     
     private var dailyActivityLast7d: [TimeCount] {
@@ -667,12 +652,6 @@ private struct ActivityChart: View {
         }
         .chartXAxis {
             switch range {
-            case .day:
-                AxisMarks(values: .stride(by: .hour, count: 3)) { _ in
-                    AxisGridLine()
-                    AxisTick()
-                    AxisValueLabel(format: .dateTime.hour(.defaultDigits(amPM: .abbreviated)))
-                }
             case .week:
                 AxisMarks(values: .stride(by: .day)) { _ in
                     AxisGridLine()
@@ -700,8 +679,8 @@ private struct ActivityChart: View {
     
     private var xUnit: Calendar.Component {
         switch range {
-        case .day: return .hour
-        case .week, .month: return .day
+        case .week: return .day
+        case .month: return .day
         }
     }
     
@@ -743,6 +722,52 @@ private struct PlanBadge: View {
                 .foregroundColor(.purple)
                 .clipShape(Capsule())
         }
+    }
+}
+
+// MARK: - Locked stats card
+
+private struct LockedStatsCard: View {
+    let accent: Color
+    let onSubscribe: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "chart.bar.xaxis")
+                .font(.system(size: 36, weight: .semibold))
+                .foregroundStyle(accent)
+                .padding(.top, 16)
+            Text("Estadísticas disponibles en PRO")
+                .font(.headline)
+            Text("Suscríbete para ver tus estadísticas semanales y mensuales.")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 16)
+            Button {
+                onSubscribe()
+            } label: {
+                Text("Ver planes")
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(accent.opacity(0.15))
+                    .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            Spacer(minLength: 8)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 220)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(AppConfig.shared.ui.cardBackgroundColor)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.black.opacity(0.06), lineWidth: 0.5)
+        )
+        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 4)
     }
 }
 

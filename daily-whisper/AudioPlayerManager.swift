@@ -32,7 +32,8 @@ final class AudioPlayerManager: NSObject, ObservableObject {
             return
         }
         
-        guard let url = normalizeURL(from: storedPath) else {
+        // Resolver URL: http(s) -> remoto (no soportado aquí); local -> siempre Documents/filename
+        guard let url = resolveLocalURL(from: storedPath) else {
             postError("No se pudo construir la URL del audio.")
             return
         }
@@ -80,21 +81,39 @@ final class AudioPlayerManager: NSObject, ObservableObject {
         }
     }
     
-    // MARK: - URL Normalization
+    // MARK: - URL Resolution
+    
+    // Nueva resolución: si no es http(s), usar siempre Documents + lastPathComponent
+    private func resolveLocalURL(from storedPath: String) -> URL? {
+        let lower = storedPath.lowercased()
+        // Caso remoto (http/https): aquí no descargamos; devolver nil para que el caller maneje
+        if lower.hasPrefix("http://") || lower.hasPrefix("https://") {
+            print("ℹ️ URL remota no soportada directamente:", storedPath)
+            return nil
+        }
+        
+        // Extraer nombre de archivo desde cualquier forma (file:// o ruta absoluta)
+        let fileName: String
+        if storedPath.hasPrefix("file://"), let url = URL(string: storedPath) {
+            fileName = url.lastPathComponent
+        } else {
+            fileName = URL(fileURLWithPath: storedPath).lastPathComponent
+        }
+        
+        // Construir en Documents actual
+        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        return docs.appendingPathComponent(fileName)
+    }
+    
+    // Conservamos normalizeURL por compatibilidad en otros usos, pero ya no se usa en play()
     private func normalizeURL(from storedPath: String) -> URL? {
-        // Casos:
-        // 1) "file:///..." -> URL(string:)
-        // 2) Ruta absoluta sin esquema -> URL(fileURLWithPath:)
-        // 3) Intento de fallback si el primer parse falla
         if storedPath.hasPrefix("file://") {
             if let url = URL(string: storedPath) {
                 return url
             }
-            // Fallback: intentar quitar el esquema si algo raro pasa
             let trimmed = storedPath.replacingOccurrences(of: "file://", with: "")
             return URL(fileURLWithPath: "/" + trimmed.trimmingCharacters(in: CharacterSet(charactersIn: "/")))
         } else {
-            // Path absoluto normal
             let url = URL(fileURLWithPath: storedPath)
             return url
         }
@@ -125,3 +144,4 @@ extension AudioPlayerManager: AVAudioPlayerDelegate {
         }
     }
 }
+
