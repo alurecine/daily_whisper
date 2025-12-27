@@ -9,22 +9,13 @@ import SwiftUI
 
 struct PlansView: View {
     @Environment(\.dismiss) private var dismiss
-    
-    // Persistencia del rol para toda la app
     @AppStorage("user.role") private var storedUserRoleRaw: String = AppConfig.UserRole.normal.rawValue
-    
     @State private var selectedPlan: Plan = .proMonthly
-    
-    // Fuente única de color de acento
     private var accent: Color { AppConfig.shared.ui.accentColor }
     
     enum Plan: String, CaseIterable, Identifiable {
-        case proMonthly
-        case proYearly
-        case unlimited
-        
+        case proMonthly, proYearly, unlimited
         var id: String { rawValue }
-        
         var title: String {
             switch self {
             case .proMonthly: return "PRO Mensual"
@@ -32,7 +23,6 @@ struct PlansView: View {
             case .unlimited: return "ILIMITADO"
             }
         }
-        
         var price: String {
             switch self {
             case .proMonthly: return "US$ 3.99/mes"
@@ -40,7 +30,6 @@ struct PlansView: View {
             case .unlimited: return "US$ 59.99/año"
             }
         }
-        
         var footnote: String {
             switch self {
             case .proMonthly: return "Cancela cuando quieras."
@@ -65,16 +54,13 @@ struct PlansView: View {
                     ForEach(Plan.allCases) { plan in
                         PlanCard(plan: plan, isSelected: selectedPlan == plan, accent: accent)
                             .onTapGesture {
-                                withAnimation(.smooth) {
-                                    selectedPlan = plan
-                                }
+                                withAnimation(.smooth) { selectedPlan = plan }
                             }
                     }
                 }
                 .padding(.top, 8)
                 
                 Button {
-                    // Simulación de compra: setear rol según plan
                     switch selectedPlan {
                     case .proMonthly, .proYearly:
                         AppConfig.shared.subscription.role = .pro
@@ -95,12 +81,8 @@ struct PlansView: View {
                 }
                 .padding(.top, 8)
                 
-                Button {
-                    dismiss()
-                } label: {
-                    Text("Más tarde")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                Button { dismiss() } label: {
+                    Text("Más tarde").font(.subheadline).foregroundColor(.secondary)
                 }
                 .padding(.top, 4)
             }
@@ -108,7 +90,7 @@ struct PlansView: View {
         }
         .navigationTitle("Planes y precios")
         .navigationBarTitleDisplayMode(.inline)
-        .background(Color(.systemBackground))
+        .background(AppConfig.shared.ui.backgroundColor)
     }
 }
 
@@ -135,7 +117,7 @@ private struct BenefitRow: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppConfig.shared.ui.cardBackgroundColor)
         )
     }
 }
@@ -162,7 +144,7 @@ private struct PlanCard: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppConfig.shared.ui.cardBackgroundColor)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -170,10 +152,3 @@ private struct PlanCard: View {
         )
     }
 }
-
-#Preview {
-    NavigationStack {
-        PlansView()
-    }
-}
-

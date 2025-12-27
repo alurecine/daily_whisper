@@ -110,6 +110,10 @@ final class AppConfig {
         var accentColor: Color = .mint
         var recordButton = RecordButton()
         
+        // Colores centralizados
+        var backgroundColor: Color = Color(.systemGray6)     // gris muy claro para fondos
+        var cardBackgroundColor: Color = .white              // blanco para cards
+        
         struct EmotionItem {
             let imageName: String    // nombre del asset en el catálogo
             let color: Color
@@ -214,4 +218,3 @@ extension AppConfig {
         }
     }
 }
-

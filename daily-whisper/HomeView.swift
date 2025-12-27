@@ -83,75 +83,77 @@ struct HomeView: View {
     
     var body: some View {
         ZStack {
-            // Fondo base
-            Color(.systemGroupedBackground).ignoresSafeArea()
+            // Fondo base (centralizado)
+            AppConfig.shared.ui.backgroundColor.ignoresSafeArea()
             
-            // Contenido principal: filtro + lista agrupada
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    // Título de la sección como parte del contenido
-                    HStack {
-                        Text("Tus audios")
-                            .font(.title.bold())
-                        Spacer()
-                    }
+            // Contenido principal: encabezado fijo + filtros fijos + lista scrollable
+            VStack(alignment: .leading, spacing: 12) {
+                // Título fijo
+                HStack {
+                    Text("Tus audios")
+                        .font(.title.bold())
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                
+                // Filtro fijo por emoción
+                EmotionFilterChips(selected: $selectedFilter)
                     .padding(.horizontal, 16)
-                    .padding(.top, 8)
-                    
-                    // Filtro visual por emoción (chips con icono + nombre)
-                    EmotionFilterChips(selected: $selectedFilter)
-                        .padding(.horizontal, 16)
-                    
-                    if entriesFiltered.isEmpty {
-                        VStack(spacing: 12) {
-                            Image(systemName: "waveform")
-                                .font(.system(size: 40))
-                                .foregroundColor(.secondary)
-                            Text("No hay audios para este filtro")
-                                .font(.headline)
-                            Text("Graba un audio o cambia el filtro de emoción.")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, 24)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 40)
-                        .background(Color(.systemGroupedBackground))
-                    } else {
-                        // Secciones por día
-                        LazyVStack(alignment: .leading, spacing: 18, pinnedViews: []) {
-                            ForEach(groupedByDay, id: \.day) { group in
-                                VStack(alignment: .leading, spacing: 10) {
-                                    DayHeader(date: group.day)
-                                        .padding(.horizontal, 16)
-                                    
-                                    VStack(spacing: 12) {
-                                        ForEach(group.items) { entry in
-                                            CardRow(
-                                                entry: entry,
-                                                player: player,
-                                                isDisabled: recorder.isRecording,
-                                                onDelete: { delete(entry: entry) }
-                                            )
+                
+                // Solo la lista hace scroll
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        if entriesFiltered.isEmpty {
+                            VStack(spacing: 12) {
+                                Image(systemName: "waveform")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(.secondary)
+                                Text("No hay audios para este filtro")
+                                    .font(.headline)
+                                Text("Graba un audio o cambia el filtro de emoción.")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, 24)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 40)
+                            .background(AppConfig.shared.ui.backgroundColor)
+                        } else {
+                            LazyVStack(alignment: .leading, spacing: 18, pinnedViews: []) {
+                                ForEach(groupedByDay, id: \.day) { group in
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        DayHeader(date: group.day)
                                             .padding(.horizontal, 16)
-                                            .contextMenu {
-                                                Button(role: .destructive) {
-                                                    delete(entry: entry)
-                                                } label: {
-                                                    Label("Eliminar", systemImage: "trash")
+                                        
+                                        VStack(spacing: 12) {
+                                            ForEach(group.items) { entry in
+                                                CardRow(
+                                                    entry: entry,
+                                                    player: player,
+                                                    isDisabled: recorder.isRecording,
+                                                    onDelete: { delete(entry: entry) }
+                                                )
+                                                .padding(.horizontal, 16)
+                                                .contextMenu {
+                                                    Button(role: .destructive) {
+                                                        delete(entry: entry)
+                                                    } label: {
+                                                        Label("Eliminar", systemImage: "trash")
+                                                    }
                                                 }
                                             }
                                         }
                                     }
                                 }
                             }
+                            .padding(.vertical, 8)
                         }
-                        .padding(.vertical, 8)
                     }
                 }
             }
-            .background(Color(.systemGroupedBackground))
+            .background(AppConfig.shared.ui.backgroundColor)
             
             // Banner permanente para usuarios normales (queda sobre el contenido)
             if AppConfig.shared.subscription.role == .normal {
@@ -509,8 +511,6 @@ private struct EmotionInlinePopup: View {
                             title: emotion.title,
                             tint: item?.color ?? .gray
                         ) {
-                            // Al tocar, no necesitamos setear selected si solo queremos cerrar y guardar,
-                            // pero si quieres reflejar visualmente la selección antes de cerrar:
                             selected = emotion
                             onSelect(emotion)
                         }
@@ -530,7 +530,7 @@ private struct EmotionInlinePopup: View {
                 }
                 .buttonStyle(.plain)
             }
-            .frame(maxWidth: 480) // permite crecer en iPad manteniendo estética
+            .frame(maxWidth: 480)
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(Color(.systemBackground))
@@ -560,7 +560,7 @@ private struct EmotionChip: View {
                     Image(imageName)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 56, height: 56) // imagen más grande
+                        .frame(width: 56, height: 56)
                 }
                 Text(title)
                     .font(.footnote.weight(.semibold))

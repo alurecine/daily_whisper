@@ -222,7 +222,7 @@ struct DashboardView: View {
             }
             .padding(.vertical, 16)
         }
-        .background(Color(.systemBackground))
+        .background(AppConfig.shared.ui.backgroundColor)
         // Sheet basada en item: garantiza contenido desde el primer render
         .sheet(item: $selectedRecommendation) { item in
             RecommendationDetailSheet(item: item)
@@ -321,7 +321,7 @@ private struct PlaceholderCard: View {
     
     var body: some View {
         RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .fill(Color(.secondarySystemBackground))
+            .fill(AppConfig.shared.ui.cardBackgroundColor)
             .frame(height: height)
             .overlay(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -386,7 +386,7 @@ private struct NewsCard: View {
         .frame(width: 300, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppConfig.shared.ui.cardBackgroundColor)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -455,7 +455,7 @@ private struct RecommendationCard: View {
         .frame(width: 300, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppConfig.shared.ui.cardBackgroundColor)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -513,7 +513,7 @@ private struct RecommendationDetailSheet: View {
                     .padding(16)
             }
         }
-        .background(Color(.systemBackground))
+        .background(AppConfig.shared.ui.cardBackgroundColor)
     }
 }
 
@@ -559,7 +559,7 @@ private struct PromoProCard: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppConfig.shared.ui.cardBackgroundColor)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -629,7 +629,7 @@ private struct MiniWeekCard: View {
         .frame(width: 150, height: 80, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppConfig.shared.ui.cardBackgroundColor)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -693,7 +693,7 @@ private struct ActivityChart: View {
         .chartYScale(domain: 0...(maxY + 1))
         .chartPlotStyle { plotArea in
             plotArea
-                .background(Color(.secondarySystemBackground))
+                .background(AppConfig.shared.ui.cardBackgroundColor)
                 .cornerRadius(12)
         }
     }
@@ -753,4 +753,3 @@ private struct PlanBadge: View {
             .navigationBarTitleDisplayMode(.inline)
     }
 }
-
