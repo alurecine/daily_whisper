@@ -32,6 +32,9 @@ struct ProfileView: View {
     // Rol persistido (se mantiene en AppStorage)
     @AppStorage("user.role") private var storedUserRoleRaw: String = AppConfig.UserRole.normal.rawValue
     
+    // NUEVO: Flag para controlar el estado del onboarding desde Perfil
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
+    
     // Color de acento centralizado
     private var accent: Color { AppConfig.shared.ui.accentColor }
     
@@ -215,6 +218,16 @@ struct ProfileView: View {
                     ) {
                         Label("Términos y condiciones", systemImage: "doc.text.fill")
                     }
+                }
+                
+                // NUEVO: Sección para controlar el estado del Onboarding
+                Section(header: Text("Onboarding")) {
+                    Toggle("Marcar onboarding como completado", isOn: $hasCompletedOnboarding)
+                    Text(hasCompletedOnboarding ? "El onboarding está marcado como completado. Al iniciar, la app irá directo al flujo normal." :
+                         "El onboarding NO está completado. Al iniciar, podrás ver la pantalla de elección o el flujo de onboarding.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             .onChange(of: pickedItem) { _, newValue in
