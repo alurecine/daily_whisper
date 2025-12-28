@@ -33,8 +33,6 @@ struct RootTabView: View {
             NavigationStack {
                 // Pasamos el binding a DashboardView
                 DashboardView(selectedTab: selectedTab)
-                    .navigationTitle("Dashboard")
-                    .navigationBarTitleDisplayMode(.inline)
                     .navigationBarBackButtonHidden(true) // Oculta "Atrás" en el primer tab
             }
             .tabItem {
@@ -44,7 +42,6 @@ struct RootTabView: View {
             
             NavigationStack {
                 HomeView()
-                    .navigationTitle("Grabar")
                     .navigationBarTitleDisplayMode(.inline)
             }
             .tabItem {
@@ -54,8 +51,6 @@ struct RootTabView: View {
             
             NavigationStack {
                 ProfileView()
-                    .navigationTitle("Perfil")
-                    .navigationBarTitleDisplayMode(.inline)
             }
             .tabItem {
                 Label("Perfil", systemImage: "person.crop.circle.fill")

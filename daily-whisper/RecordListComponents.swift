@@ -2,10 +2,12 @@ import SwiftUI
 
 struct DayHeader: View {
     let date: Date
+    @Environment(\.themeManager) private var theme
+    
     var body: some View {
         Text(formatted(date))
             .font(.headline)
-            .foregroundColor(.secondary)
+            .foregroundColor(theme.colors.cardSubtitle)
     }
     private func formatted(_ d: Date) -> String {
         let f = DateFormatter()
@@ -21,6 +23,7 @@ struct CardRow: View {
     let onDelete: () -> Void
     
     @Environment(\.horizontalSizeClass) private var hSizeClass
+    @Environment(\.themeManager) private var theme
     
     private var isPlaying: Bool {
         player.currentEntryID == entry.id && player.isPlaying
@@ -48,7 +51,7 @@ struct CardRow: View {
                 } label: {
                     Image(systemName: isPlaying ? "stop.circle.fill" : "play.circle.fill")
                         .font(.title2)
-                        .foregroundStyle(isDisabled ? .secondary : .primary)
+                        .foregroundStyle(isDisabled ? theme.colors.cardSubtitle : theme.colors.accent)
                 }
                 .buttonStyle(.plain)
                 .disabled(isDisabled)
@@ -61,8 +64,14 @@ struct CardRow: View {
                 .frame(width: tagWidth, alignment: .center)
                 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(primaryText).font(.body).lineLimit(1).truncationMode(.tail)
-                    Text(secondaryText).font(.caption).foregroundColor(.secondary)
+                    Text(primaryText)
+                        .font(.body)
+                        .foregroundColor(theme.colors.cardTitle)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    Text(secondaryText)
+                        .font(.caption)
+                        .foregroundColor(theme.colors.cardSubtitle)
                 }
                 
                 Spacer()
@@ -75,7 +84,7 @@ struct CardRow: View {
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(AppConfig.shared.ui.cardBackgroundColor)
+                    .fill(theme.colors.cardBackground)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)

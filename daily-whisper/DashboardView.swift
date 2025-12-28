@@ -11,8 +11,8 @@ import Charts
 
 struct DashboardView: View {
     
-    // Core Data
     @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.themeManager) private var theme
     
     @FetchRequest(
         sortDescriptors: [
@@ -22,7 +22,6 @@ struct DashboardView: View {
     )
     private var allEntries: FetchedResults<AudioEntry>
     
-    // ÚNICA FUENTE DE VERDAD: Usuario desde Core Data (traer 1)
     @FetchRequest(
         sortDescriptors: [],
         predicate: nil,
@@ -30,22 +29,13 @@ struct DashboardView: View {
     )
     private var users: FetchedResults<User>
     
-    // Player local (si lo necesitas en el futuro)
     @StateObject private var player = AudioPlayerManager()
-    
-    // Binding a la pestaña seleccionada para poder saltar a la lista de audios
     @Binding var selectedTab: AppTab
-    
-    // Estado para sheet de recomendaciones
     @State private var selectedRecommendation: RecommendationItem?
-    
-    // Control de navegación a PlansView
     @State private var showPlans = false
     
-    // Color de acento centralizado
-    private var accent: Color { AppConfig.shared.ui.accentColor }
+    private var accent: Color { theme.colors.accent }
     
-    // Rango seleccionado para el gráfico (local a la sesión)
     enum ChartRange: String, CaseIterable, Identifiable {
         case week = "Semana"
         case month = "Mes"
@@ -53,7 +43,6 @@ struct DashboardView: View {
     }
     @State private var chartRange: ChartRange = .month
     
-    // Datos de ejemplo para "Novedades"
     private let news: [NewsItem] = [
         .init(title: "Nueva función de grabación", subtitle: "Ahora puedes grabar hasta 30s con mejor calidad.", imageSystemName: "mic.circle.fill", tint: .mint),
         .init(title: "Mejoras en el reproductor", subtitle: "Controles más claros y correcciones de errores.", imageSystemName: "play.circle.fill", tint: .blue),
@@ -61,7 +50,6 @@ struct DashboardView: View {
         .init(title: "Estadísticas semanales", subtitle: "Estamos preparando métricas útiles para ti.", imageSystemName: "chart.bar.xaxis", tint: .orange)
     ]
     
-    // Recomendaciones (array editable)
     private let recommendations: [RecommendationItem] = [
         .init(
             title: "Consejo de respiración",
@@ -106,7 +94,6 @@ struct DashboardView: View {
         )
     ]
     
-    // Últimos 7 días para "Tu semana"
     private var lastWeekEntries: [AudioEntry] {
         let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date().addingTimeInterval(-7*24*3600)
         return allEntries.filter { entry in
@@ -115,7 +102,6 @@ struct DashboardView: View {
         }
     }
     
-    // Usuario actual (si no existe, placeholder)
     private var currentUser: User? {
         users.first
     }
@@ -136,8 +122,6 @@ struct DashboardView: View {
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 24) {
-                
-                // Header de bienvenida + avatar + badge de plan
                 HStack(alignment: .center, spacing: 12) {
                     avatarImage
                         .resizable()
@@ -152,42 +136,37 @@ struct DashboardView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Hola, \(displayName)")
                             .font(.title2.bold())
+                            .foregroundColor(theme.colors.textPrimary)
                         Text("Qué bueno verte por aquí")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(theme.colors.textSecondary)
                     }
                     Spacer()
                     PlanBadge(role: AppConfig.shared.subscription.role, accent: accent)
                 }
                 .padding(.horizontal, 16)
                 
-                // Promo PRO (solo usuarios normales)
                 if AppConfig.shared.subscription.role == .normal {
-                    PromoProCard(accent: accent) {
-                        showPlans = true
-                    }
-                    .padding(.horizontal, 16)
+                    PromoProCard(accent: accent)
+                        .padding(.horizontal, 16)
                 }
                 
-                // Sección: Novedades
-                SectionHeader("Novedades")
-                NewsCarousel(items: news)
+                SectionHeader("Novedades", titleColor: theme.colors.textPrimary)
+                NewsCarousel(items: news, theme: theme)
                 
-                // Sección: Tu semana (últimos 7 días)
-                SectionHeader("Tu semana")
+                SectionHeader("Tu semana", titleColor: theme.colors.textPrimary)
                 if lastWeekEntries.isEmpty {
-                    PlaceholderCard(height: 120)
+                    PlaceholderCard(height: 120, theme: theme)
                         .overlay(
                             Text("Aún no hay audios esta semana")
                                 .font(.subheadline)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(theme.colors.cardSubtitle)
                         )
                 } else {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 10) {
                             ForEach(lastWeekEntries) { entry in
-                                MiniWeekCard(entry: entry) {
-                                    // Al tocar cualquier card, saltamos a la pestaña de lista de audios
+                                MiniWeekCard(entry: entry, theme: theme) {
                                     selectedTab = .record
                                 }
                             }
@@ -196,15 +175,13 @@ struct DashboardView: View {
                     }
                 }
                 
-                // Sección: Recomendaciones
-                SectionHeader("Recomendaciones")
-                RecommendationsCarousel(items: recommendations) { item in
+                SectionHeader("Recomendaciones", titleColor: theme.colors.textPrimary)
+                RecommendationsCarousel(items: recommendations, theme: theme) { item in
                     selectedRecommendation = item
                 }
                 
-                // Sección: Resumen (gráfico) visible solo para PRO o ILIMITADO
                 VStack(alignment: .leading, spacing: 10) {
-                    SectionHeader("Resumen de actividad")
+                    SectionHeader("Resumen de actividad", titleColor: theme.colors.textPrimary)
                     VStack {
                         if AppConfig.shared.subscription.role == .pro || AppConfig.shared.subscription.role == .unlimited {
                             Picker("", selection: $chartRange) {
@@ -214,12 +191,11 @@ struct DashboardView: View {
                             .pickerStyle(.segmented)
                             .frame(maxWidth: 160)
                             
-                            ActivityChart(data: chartData, range: chartRange)
+                            ActivityChart(data: chartData, range: chartRange, theme: theme)
                                 .frame(height: 220)
                                 .padding(.top, 4)
                         } else {
-                            // Bloqueado para usuarios Normal
-                            LockedStatsCard(accent: accent) {
+                            LockedStatsCard(accent: accent, theme: theme) {
                                 showPlans = true
                             }
                         }
@@ -229,10 +205,9 @@ struct DashboardView: View {
             }
             .padding(.vertical, 16)
         }
-        .background(AppConfig.shared.ui.backgroundColor)
-        // Sheet basada en item: garantiza contenido desde el primer render
+        .background(theme.colors.background)
         .sheet(item: $selectedRecommendation) { item in
-            RecommendationDetailSheet(item: item)
+            RecommendationDetailSheet(item: item, theme: theme)
                 .presentationDetents([.fraction(0.75), .large])
                 .presentationDragIndicator(.visible)
         }
@@ -242,9 +217,8 @@ struct DashboardView: View {
             }
             .presentationDetents([.large])
         }
+        .tint(theme.colors.accent)
     }
-    
-    // MARK: - Datos del gráfico según rango
     
     private var chartData: [TimeCount] {
         switch chartRange {
@@ -292,21 +266,24 @@ struct DashboardView: View {
 
 private struct SectionHeader: View {
     let title: String
-    init(_ title: String) { self.title = title }
+    let titleColor: Color
+    init(_ title: String, titleColor: Color) { self.title = title; self.titleColor = titleColor }
     
     var body: some View {
         Text(title)
             .font(.title2.bold())
+            .foregroundColor(titleColor)
             .padding(.horizontal, 16)
     }
 }
 
 private struct PlaceholderCard: View {
     var height: CGFloat = 140
+    let theme: ThemeManager
     
     var body: some View {
         RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .fill(AppConfig.shared.ui.cardBackgroundColor)
+            .fill(theme.colors.cardBackground)
             .frame(height: height)
             .overlay(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -329,12 +306,13 @@ private struct NewsItem: Identifiable {
 
 private struct NewsCarousel: View {
     let items: [NewsItem]
+    let theme: ThemeManager
     
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 14) {
                 ForEach(items) { item in
-                    NewsCard(item: item)
+                    NewsCard(item: item, theme: theme)
                 }
             }
             .padding(.horizontal, 16)
@@ -344,6 +322,7 @@ private struct NewsCarousel: View {
 
 private struct NewsCard: View {
     let item: NewsItem
+    let theme: ThemeManager
     
     var body: some View {
         HStack(spacing: 12) {
@@ -358,11 +337,11 @@ private struct NewsCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.title)
                     .font(.headline)
-                    .foregroundColor(.primary)
+                    .foregroundColor(theme.colors.cardTitle)
                     .lineLimit(2)
                 Text(item.subtitle)
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(theme.colors.cardSubtitle)
                     .lineLimit(2)
             }
             Spacer(minLength: 0)
@@ -371,7 +350,7 @@ private struct NewsCard: View {
         .frame(width: 300, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(AppConfig.shared.ui.cardBackgroundColor)
+                .fill(theme.colors.cardBackground)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -394,13 +373,14 @@ private struct RecommendationItem: Identifiable, Equatable {
 
 private struct RecommendationsCarousel: View {
     let items: [RecommendationItem]
+    let theme: ThemeManager
     let onTap: (RecommendationItem) -> Void
     
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 14) {
                 ForEach(items) { item in
-                    RecommendationCard(item: item)
+                    RecommendationCard(item: item, theme: theme)
                         .onTapGesture {
                             onTap(item)
                         }
@@ -413,6 +393,7 @@ private struct RecommendationsCarousel: View {
 
 private struct RecommendationCard: View {
     let item: RecommendationItem
+    let theme: ThemeManager
     
     var body: some View {
         HStack(spacing: 12) {
@@ -427,11 +408,11 @@ private struct RecommendationCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.title)
                     .font(.headline)
-                    .foregroundColor(.primary)
+                    .foregroundColor(theme.colors.cardTitle)
                     .lineLimit(2)
                 Text(item.subtitle)
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(theme.colors.cardSubtitle)
                     .lineLimit(2)
             }
             Spacer(minLength: 0)
@@ -440,7 +421,7 @@ private struct RecommendationCard: View {
         .frame(width: 300, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(AppConfig.shared.ui.cardBackgroundColor)
+                .fill(theme.colors.cardBackground)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -452,6 +433,7 @@ private struct RecommendationCard: View {
 
 private struct RecommendationDetailSheet: View {
     let item: RecommendationItem
+    let theme: ThemeManager
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -474,9 +456,10 @@ private struct RecommendationDetailSheet: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(item.title)
                         .font(.headline)
+                        .foregroundColor(theme.colors.cardTitle)
                     Text(item.subtitle)
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(theme.colors.cardSubtitle)
                 }
                 Spacer()
                 Button {
@@ -493,19 +476,19 @@ private struct RecommendationDetailSheet: View {
             ScrollView {
                 Text(item.longText)
                     .font(.body)
-                    .foregroundColor(.primary)
+                    .foregroundColor(theme.colors.cardTitle)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(16)
             }
         }
-        .background(AppConfig.shared.ui.cardBackgroundColor)
+        .background(theme.colors.cardBackground)
     }
 }
 
-// MARK: - Promo PRO Card (usa accent centralizado)
+// MARK: - Promo PRO Card
 private struct PromoProCard: View {
     let accent: Color
-    let onSubscribe: () -> Void
+    @Environment(\.themeManager) private var theme
     
     var body: some View {
         HStack(spacing: 12) {
@@ -520,9 +503,10 @@ private struct PromoProCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Pásate a PRO")
                     .font(.headline)
+                    .foregroundColor(theme.colors.cardTitle)
                 Text("Graba hasta 5 audios diarios y conserva 30 días de historial.")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(theme.colors.cardSubtitle)
                     .lineLimit(nil)
                     .minimumScaleFactor(0.75)
                     .fixedSize(horizontal: false, vertical: true)
@@ -530,7 +514,7 @@ private struct PromoProCard: View {
             }
             Spacer()
             Button {
-                onSubscribe()
+                // se maneja desde el padre via sheet
             } label: {
                 Text("Suscribirme")
                     .font(.subheadline.weight(.semibold))
@@ -544,7 +528,7 @@ private struct PromoProCard: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(AppConfig.shared.ui.cardBackgroundColor)
+                .fill(theme.colors.cardBackground)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -554,58 +538,53 @@ private struct PromoProCard: View {
     }
 }
 
-// MARK: - Mini card para "Tu semana"
+// MARK: - MiniWeekCard
 
 private struct MiniWeekCard: View {
     let entry: AudioEntry
+    let theme: ThemeManager
     let onTap: () -> Void
     
     private var formattedDay: String {
         let f = DateFormatter()
-        f.dateFormat = "E d" // ej: "Lun 23"
+        f.dateFormat = "E d"
         return f.string(from: entry.date ?? Date())
     }
     
     private var formattedTime: String {
         let f = DateFormatter()
-        f.timeStyle = .short // ej: "14:32"
+        f.timeStyle = .short
         return f.string(from: entry.date ?? Date())
     }
     
-    private var durationText: String {
-        "\(Int(entry.duration)) s"
-    }
+    private var durationText: String { "\(Int(entry.duration)) s" }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            // Encabezado: día y hora
             HStack {
                 Text(formattedDay)
                     .font(.caption.weight(.semibold))
+                    .foregroundColor(theme.colors.cardTitle)
                 Spacer()
                 Text(formattedTime)
                     .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(theme.colors.cardSubtitle)
             }
-            
-            // Ícono + duración
             HStack(spacing: 4) {
                 Image(systemName: "waveform")
                     .font(.caption)
                     .foregroundStyle(.blue)
                 Text(durationText)
                     .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(theme.colors.cardSubtitle)
             }
-            
-            // Pie: pequeño badge (sin Spacer para compactar)
             HStack(spacing: 4) {
                 Image(systemName: "mic.fill")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                 Text("Audio")
                     .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(theme.colors.cardSubtitle)
             }
             .padding(.top, 2)
         }
@@ -614,7 +593,7 @@ private struct MiniWeekCard: View {
         .frame(width: 150, height: 80, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(AppConfig.shared.ui.cardBackgroundColor)
+                .fill(theme.colors.cardBackground)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -628,7 +607,7 @@ private struct MiniWeekCard: View {
     }
 }
 
-// MARK: - Gráfico de actividad adaptado a rango
+// MARK: - Gráfico
 
 private struct TimeCount: Identifiable {
     let id = UUID()
@@ -639,6 +618,7 @@ private struct TimeCount: Identifiable {
 private struct ActivityChart: View {
     let data: [TimeCount]
     let range: DashboardView.ChartRange
+    let theme: ThemeManager
     
     var body: some View {
         Chart {
@@ -647,7 +627,7 @@ private struct ActivityChart: View {
                     x: .value("Fecha", point.date, unit: xUnit),
                     y: .value("Audios", point.count)
                 )
-                .foregroundStyle(AppConfig.shared.ui.accentColor.gradient)
+                .foregroundStyle(theme.colors.accent.gradient)
             }
         }
         .chartXAxis {
@@ -672,7 +652,7 @@ private struct ActivityChart: View {
         .chartYScale(domain: 0...(maxY + 1))
         .chartPlotStyle { plotArea in
             plotArea
-                .background(AppConfig.shared.ui.cardBackgroundColor)
+                .background(theme.colors.cardBackground)
                 .cornerRadius(12)
         }
     }
@@ -684,12 +664,10 @@ private struct ActivityChart: View {
         }
     }
     
-    private var maxY: Int {
-        data.map(\.count).max() ?? 0
-    }
+    private var maxY: Int { data.map(\.count).max() ?? 0 }
 }
 
-// MARK: - Badge de plan actual
+// MARK: - Locked stats card
 
 private struct PlanBadge: View {
     let role: AppConfig.UserRole
@@ -725,10 +703,9 @@ private struct PlanBadge: View {
     }
 }
 
-// MARK: - Locked stats card
-
 private struct LockedStatsCard: View {
     let accent: Color
+    let theme: ThemeManager
     let onSubscribe: () -> Void
     
     var body: some View {
@@ -739,9 +716,10 @@ private struct LockedStatsCard: View {
                 .padding(.top, 16)
             Text("Estadísticas disponibles en PRO")
                 .font(.headline)
+                .foregroundColor(theme.colors.cardTitle)
             Text("Suscríbete para ver tus estadísticas semanales y mensuales.")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundColor(theme.colors.cardSubtitle)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 16)
             Button {
@@ -761,7 +739,7 @@ private struct LockedStatsCard: View {
         .frame(height: 220)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(AppConfig.shared.ui.cardBackgroundColor)
+                .fill(theme.colors.cardBackground)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -778,3 +756,4 @@ private struct LockedStatsCard: View {
             .navigationBarTitleDisplayMode(.inline)
     }
 }
+

@@ -560,6 +560,8 @@ private struct EmotionInlinePopup: View {
     let onCancel: () -> Void
     let onSelect: (AppConfig.Emotion) -> Void
     
+    @Environment(\.themeManager) private var theme
+    
     private var order: [AppConfig.Emotion] { AppConfig.shared.ui.emotionOrder }
     private var map: [AppConfig.Emotion: AppConfig.UI.EmotionItem] { AppConfig.shared.ui.emotions }
     
@@ -571,9 +573,9 @@ private struct EmotionInlinePopup: View {
     
     var body: some View {
         ZStack {
-            // Fondo desenfocado
+            // Fondo difuminado (igual al overlay de grabación)
             Rectangle()
-                .fill(Color.black.opacity(0.25))
+                .fill(.ultraThinMaterial)
                 .ignoresSafeArea()
                 .onTapGesture { onCancel() }
             
@@ -614,7 +616,7 @@ private struct EmotionInlinePopup: View {
             .frame(maxWidth: 480)
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color(.systemBackground))
+                    .fill(theme.colors.cardBackground)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)

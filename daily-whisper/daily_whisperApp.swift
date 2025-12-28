@@ -37,17 +37,19 @@ struct daily_whisperApp: App {
     
     private let authManager = BiometricAuthManager()
     
+    // Theme manager global
+    @State private var themeManager = ThemeManager() // init sin tocar self
+    @Environment(\.colorScheme) private var colorScheme
+    
     var body: some Scene {
         WindowGroup {
             let content = Group {
                 switch lockState {
                 case .unlocked:
-                    // USAR RootView en lugar de RootTabView
                     RootView()
                         .environment(\.managedObjectContext, persistenceController.container.viewContext)
                         .onAppear { 
                             wasUnlockedOnce = true
-                            // Migración de rutas antiguas -> solo nombre de archivo
                             migrateAudioEntryPaths(context: persistenceController.container.viewContext)
                         }
                 case .locked, .unlocking:
@@ -60,6 +62,7 @@ struct daily_whisperApp: App {
                 }
             }
             content
+                .environment(\.themeManager, themeManager)
                 .modifier(GlobalColorSchemeApplier(useSystemAppearance: useSystemAppearance, forceDarkMode: forceDarkMode))
                 .onAppear {
                     // Autenticación inicial
@@ -77,6 +80,10 @@ struct daily_whisperApp: App {
                     
                     // Asegurar que el límite diario arranque correcto
                     AppConfig.shared.audio.maxEntriesPerDay = AppConfig.shared.policy.maxEntriesPerDay
+                    
+                    // Actualizar tema inicial según preferencia del usuario
+                    let targetScheme: ColorScheme? = useSystemAppearance ? colorScheme : (forceDarkMode ? .dark : .light)
+                    themeManager.update(for: targetScheme)
                 }
                 .onChange(of: storedUserRoleRaw) { _, newValue in
                     let role = AppConfig.UserRole(rawValue: newValue) ?? .normal
@@ -89,6 +96,10 @@ struct daily_whisperApp: App {
                     let context = persistenceController.container.viewContext
                     AppConfig.shared.cleanupOldEntries(context: context)
                     
+                    // Actualizar tema al volver
+                    let targetScheme: ColorScheme? = useSystemAppearance ? colorScheme : (forceDarkMode ? .dark : .light)
+                    themeManager.update(for: targetScheme)
+                    
                     guard requireOnForeground else { return }
                     guard wasUnlockedOnce else { return }
                     
@@ -97,6 +108,18 @@ struct daily_whisperApp: App {
                     }
                     guard lockState == .unlocked else { return }
                     authenticateBiometricsFirst()
+                }
+                .onChange(of: useSystemAppearance) { _, _ in
+                    let targetScheme: ColorScheme? = useSystemAppearance ? colorScheme : (forceDarkMode ? .dark : .light)
+                    themeManager.update(for: targetScheme)
+                }
+                .onChange(of: forceDarkMode) { _, _ in
+                    let targetScheme: ColorScheme? = useSystemAppearance ? colorScheme : (forceDarkMode ? .dark : .light)
+                    themeManager.update(for: targetScheme)
+                }
+                .onChange(of: colorScheme) { _, newScheme in
+                    let targetScheme: ColorScheme? = useSystemAppearance ? newScheme : (forceDarkMode ? .dark : .light)
+                    themeManager.update(for: targetScheme)
                 }
         }
     }
@@ -111,10 +134,8 @@ struct daily_whisperApp: App {
                 guard let stored = entry.fileURL, !stored.isEmpty else { continue }
                 
                 let lower = stored.lowercased()
-                // Ignorar remotos
                 if lower.hasPrefix("http://") || lower.hasPrefix("https://") { continue }
                 
-                // Extraer fileName desde cualquier forma
                 let fileName: String
                 if stored.hasPrefix("file://"), let url = URL(string: stored) {
                     fileName = url.lastPathComponent
@@ -122,10 +143,8 @@ struct daily_whisperApp: App {
                     fileName = URL(fileURLWithPath: stored).lastPathComponent
                 }
                 
-                // Si ya está normalizado, nada que hacer
                 if stored == fileName { continue }
                 
-                // Actualizar al nombre de archivo
                 entry.fileURL = fileName
                 didChange = true
             }
@@ -137,7 +156,7 @@ struct daily_whisperApp: App {
         }
     }
     
-    // MARK: - Autenticaciones (igual que tu última versión)
+    // MARK: - Autenticaciones
     private func authenticateBiometricsFirst() {
         guard lockState != .unlocking else { return }
         lockState = .unlocking
