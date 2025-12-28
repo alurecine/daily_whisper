@@ -243,6 +243,11 @@ struct HomeView: View {
                     pendingDuration = duration
                     // No forzar emoción por defecto
                     withAnimation(.easeInOut) { showEmotionPopup = true }
+                } onClose: {
+                    // Cierre manual del overlay (sustituye a dismiss())
+                    withAnimation(.easeInOut) {
+                        showQuickRecordOverlay = false
+                    }
                 }
                 .transition(.opacity)
                 .zIndex(20)
@@ -411,10 +416,10 @@ struct HomeView: View {
 // MARK: - QuickRecordOverlay: pantalla full-screen mínima con RecordButtonView
 
 private struct QuickRecordOverlay: View {
-    @Environment(\.dismiss) private var dismiss
     @ObservedObject var recorder: AudioRecorderManager
     let maxDuration: TimeInterval
     let onFinish: (URL, Double) -> Void
+    let onClose: () -> Void
     
     private var accent: Color { AppConfig.shared.ui.accentColor }
     
@@ -454,27 +459,11 @@ private struct QuickRecordOverlay: View {
                 .ignoresSafeArea()
                 .onTapGesture {
                     if !recorder.isRecording {
-                        dismiss()
+                        onClose()
                     }
                 }
             
             VStack(spacing: 16) {
-                HStack {
-                    Spacer()
-                    Button {
-                        if recorder.isRecording {
-                            recorder.stopRecording()
-                        }
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title2)
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
                 
                 Spacer()
                 
@@ -497,19 +486,19 @@ private struct QuickRecordOverlay: View {
                             .transition(.opacity)
                             .id(currentPromptIndex2)
                     }
-                    .padding(.bottom, 36) // +30 pts extra de separación vs antes
+                    .padding(.bottom, 56)
                 }
                 
                 // Temporizador
                 Text(timeString(recorder.isRecording ? recorder.currentTime : 0) + " / " + timeString(maxDuration))
                     .font(.title3.monospacedDigit().weight(.semibold))
                     .foregroundColor(.primary)
-                    .padding(.bottom, 4)
+                    .padding(.bottom, 16)
                 
                 // Botón de grabación
                 RecordButtonView(recorder: recorder) { url, duration in
                     onFinish(url, duration)
-                    dismiss()
+                    onClose()
                 }
                 
                 Spacer()
@@ -687,3 +676,4 @@ private struct EmotionChip: View {
         isSelected ? tint : Color.black.opacity(0.08)
     }
 }
+
