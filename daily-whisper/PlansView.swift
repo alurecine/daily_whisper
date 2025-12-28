@@ -9,6 +9,7 @@ import SwiftUI
 
 struct PlansView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.themeManager) private var theme
     @AppStorage("user.role") private var storedUserRoleRaw: String = AppConfig.UserRole.normal.rawValue
     @State private var selectedPlan: Plan = .proMonthly
     private var accent: Color { AppConfig.shared.ui.accentColor }
@@ -44,18 +45,42 @@ struct PlansView: View {
             VStack(spacing: 20) {
                 Text("Elige tu plan")
                     .font(.largeTitle.bold())
+                    .foregroundColor(theme.colors.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 
-                BenefitRow(icon: "mic.fill", title: "Graba más por día", subtitle: "Hasta 5 audios diarios en PRO. Sin límite en ILIMITADO.", accent: accent)
-                BenefitRow(icon: "timer", title: "Duración por audio", subtitle: "30s Normal, 60s PRO, 120s ILIMITADO", accent: accent)
-                BenefitRow(icon: "tray.full.fill", title: "Más historial", subtitle: "7/30/90 días según plan", accent: accent)
+                BenefitRow(
+                    icon: "mic.fill",
+                    title: "Graba más por día",
+                    subtitle: "Hasta 5 audios diarios en PRO. Sin límite en ILIMITADO.",
+                    accent: accent,
+                    theme: theme
+                )
+                BenefitRow(
+                    icon: "timer",
+                    title: "Duración por audio",
+                    subtitle: "30s Normal, 60s PRO, 120s ILIMITADO",
+                    accent: accent,
+                    theme: theme
+                )
+                BenefitRow(
+                    icon: "tray.full.fill",
+                    title: "Más historial",
+                    subtitle: "7/30/90 días según plan",
+                    accent: accent,
+                    theme: theme
+                )
                 
                 VStack(spacing: 12) {
                     ForEach(Plan.allCases) { plan in
-                        PlanCard(plan: plan, isSelected: selectedPlan == plan, accent: accent)
-                            .onTapGesture {
-                                withAnimation(.smooth) { selectedPlan = plan }
-                            }
+                        PlanCard(
+                            plan: plan,
+                            isSelected: selectedPlan == plan,
+                            accent: accent,
+                            theme: theme
+                        )
+                        .onTapGesture {
+                            withAnimation(.smooth) { selectedPlan = plan }
+                        }
                     }
                 }
                 .padding(.top, 8)
@@ -82,7 +107,9 @@ struct PlansView: View {
                 .padding(.top, 8)
                 
                 Button { dismiss() } label: {
-                    Text("Más tarde").font(.subheadline).foregroundColor(.secondary)
+                    Text("Más tarde")
+                        .font(.subheadline)
+                        .foregroundColor(theme.colors.textSecondary)
                 }
                 .padding(.top, 4)
             }
@@ -90,7 +117,7 @@ struct PlansView: View {
         }
         .navigationTitle("Planes y precios")
         .navigationBarTitleDisplayMode(.inline)
-        .background(AppConfig.shared.ui.backgroundColor)
+        .background(theme.colors.background)
     }
 }
 
@@ -99,6 +126,7 @@ private struct BenefitRow: View {
     let title: String
     let subtitle: String
     let accent: Color
+    let theme: ThemeManager
     
     var body: some View {
         HStack(spacing: 12) {
@@ -109,15 +137,19 @@ private struct BenefitRow: View {
                 .background(accent.opacity(0.12))
                 .clipShape(Circle())
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.headline)
-                Text(subtitle).font(.subheadline).foregroundColor(.secondary)
+                Text(title)
+                    .font(.headline)
+                    .foregroundColor(theme.colors.cardTitle)
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundColor(theme.colors.cardSubtitle)
             }
             Spacer()
         }
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(AppConfig.shared.ui.cardBackgroundColor)
+                .fill(theme.colors.cardBackground)
         )
     }
 }
@@ -126,13 +158,20 @@ private struct PlanCard: View {
     let plan: PlansView.Plan
     let isSelected: Bool
     let accent: Color
+    let theme: ThemeManager
     
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text(plan.title).font(.headline)
-                Text(plan.price).font(.subheadline).foregroundColor(.secondary)
-                Text(plan.footnote).font(.caption2).foregroundColor(.secondary)
+                Text(plan.title)
+                    .font(.headline)
+                    .foregroundColor(theme.colors.cardTitle)
+                Text(plan.price)
+                    .font(.subheadline)
+                    .foregroundColor(theme.colors.cardSubtitle)
+                Text(plan.footnote)
+                    .font(.caption2)
+                    .foregroundColor(theme.colors.cardSubtitle)
             }
             Spacer()
             if isSelected {
@@ -144,7 +183,7 @@ private struct PlanCard: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(AppConfig.shared.ui.cardBackgroundColor)
+                .fill(theme.colors.cardBackground)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)

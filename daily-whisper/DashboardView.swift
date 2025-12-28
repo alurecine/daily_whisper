@@ -147,7 +147,7 @@ struct DashboardView: View {
                 .padding(.horizontal, 16)
                 
                 if AppConfig.shared.subscription.role == .normal {
-                    PromoProCard(accent: accent)
+                    PromoProCard(accent: accent, onSubscribe: { showPlans = true })
                         .padding(.horizontal, 16)
                 }
                 
@@ -489,6 +489,7 @@ private struct RecommendationDetailSheet: View {
 private struct PromoProCard: View {
     let accent: Color
     @Environment(\.themeManager) private var theme
+    let onSubscribe: () -> Void
     
     var body: some View {
         HStack(spacing: 12) {
@@ -514,7 +515,7 @@ private struct PromoProCard: View {
             }
             Spacer()
             Button {
-                // se maneja desde el padre via sheet
+                onSubscribe()
             } label: {
                 Text("Suscribirme")
                     .font(.subheadline.weight(.semibold))
@@ -756,4 +757,3 @@ private struct LockedStatsCard: View {
             .navigationBarTitleDisplayMode(.inline)
     }
 }
-
