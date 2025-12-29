@@ -15,7 +15,7 @@ struct IntegratedRecordingOverlay: View {
     
     // Estado interno
     @State private var tempURL: URL?
-    @State private var selectedEmotion: AppConfig.Emotion = .agotada
+    @State private var selectedEmotion: AppConfig.Emotion = .angelical
     
     // Estilo centralizado
     private var accent: Color { AppConfig.shared.ui.accentColor }
@@ -74,7 +74,7 @@ struct IntegratedRecordingOverlay: View {
                 // Picker de emoción en chips
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        ForEach(emotionOrder, id: \.self) { emotion in
+                        ForEach(emotionOrder, id: \.rawValue) { emotion in
                             let item = emotionMap[emotion]
                             EmotionChip(
                                 isSelected: selectedEmotion == emotion,
@@ -231,4 +231,3 @@ private struct EmotionChip: View {
         ) { _, _, _ in }
     }
 }
-

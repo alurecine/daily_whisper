@@ -30,7 +30,7 @@ struct EmotionFilterChips: View {
                     theme: theme
                 )
                 
-                ForEach(order, id: \.self) { emotion in
+                ForEach(order, id: \.rawValue) { emotion in
                     let item = map[emotion]
                     Chip(
                         isSelected: selected == emotion,

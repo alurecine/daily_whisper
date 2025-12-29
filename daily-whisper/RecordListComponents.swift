@@ -114,7 +114,7 @@ private struct EmotionLeadingTag: View {
         HStack(spacing: 8) {
             if let imageName {
                 Image(imageName).resizable().scaledToFit()
-                    .frame(width: 28, height: 28)
+                    .frame(width: 30, height: 30)
                     .accessibilityHidden(true)
             }
             if let title {
@@ -126,8 +126,8 @@ private struct EmotionLeadingTag: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .center)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
         .background(color.opacity(0.18))
         .foregroundStyle(color)
         .clipShape(Capsule())

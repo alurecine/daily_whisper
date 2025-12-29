@@ -82,25 +82,87 @@ final class AppConfig {
     
     // MARK: - Emociones (Dominio)
     enum Emotion: String, CaseIterable, Identifiable {
-        case agotada = "agotada"
-        case angry = "angry"
-        case charlatan = "charlatan"
-        case creative = "creative"
-        case facinada = "facinada"
-        case inlove = "inlove"
-        case suenio = "suenio"
+        // Existentes
+//        case agotada = "agotada"
+//        case angry = "angry"
+//        case charlatan = "charlatan"
+//        case creative = "creative"
+//        case facinada = "facinada"
+//        case inlove = "inlove"
+//        case suenio = "suenio"
+        
+        // Nuevas desde Assets/emociones
+//        case adios = "adios"
+        case alerta = "alerta"
+        case angelical = "angelical"
+        case cansado = "cansado"
+        case carinioso = "carinioso"
+        case contento = "contento"
+        case decepcionado = "decepcionado"
+        case demonio = "demonio"
+//        case dinero = "dinero"
+        case dormir = "dormir"
+        case enamorado = "enamorado"
+        case enfadado = "enfadado"
+        case enfermo = "enfermo"
+//        case gracioso = "gracioso"
+        case hambriento = "hambriento"
+        case herido = "herido"
+//        case hola = "hola"
+        case llorando = "llorando"
+        case loca = "loca"
+        case muerto = "muerto"
+        case orgulloso = "orgulloso"
+        case pasarPorAlto = "pasar-por-alto"
+        case pensamiento = "pensamiento"
+        case risa = "risa"
+        case solo = "solo"
+        case sorpresa = "sorpresa"
+        case suspiro = "suspiro"
+        case triste = "triste"
         
         var id: String { rawValue }
         
         var title: String {
+            // Por ahora, mismo nombre del asset (puedes ajustar más adelante)
             switch self {
-            case .agotada: return "Agotada"
-            case .angry: return "Enojada"
-            case .charlatan: return "Charlatán"
-            case .creative: return "Creativa"
-            case .facinada: return "Fascinada"
-            case .inlove: return "Enamorada"
-            case .suenio: return "Sueño"
+            // Existentes con títulos ya definidos
+//            case .agotada: return "Agotada"
+//            case .angry: return "Enojada"
+//            case .charlatan: return "Charlatán"
+//            case .creative: return "Creativa"
+//            case .facinada: return "Fascinada"
+//            case .inlove: return "Enamorada"
+//            case .suenio: return "Sueño"
+            // Nuevas (usar el nombre del asset tal cual)
+//            case .adios: return "adios"
+            case .alerta: return "alerta"
+            case .angelical: return "angelical"
+            case .cansado: return "cansado"
+            case .carinioso: return "cariñoso"
+            case .contento: return "contento"
+            case .decepcionado: return "decepcionado"
+            case .demonio: return "endemoniado"
+//            case .dinero: return "dinero"
+            case .dormir: return "dormilon"
+            case .enamorado: return "enamorado"
+            case .enfadado: return "enfadado"
+            case .enfermo: return "enfermo"
+//            case .gracioso: return "gracioso"
+            case .hambriento: return "hambriento"
+            case .herido: return "herido"
+//            case .hola: return "hola"
+            case .llorando: return "lloroso"
+            case .loca: return "loco"
+            case .muerto: return "muerto"
+            case .orgulloso: return "orgulloso"
+            case .pasarPorAlto: return "indiferente"
+            case .pensamiento: return "pensante"
+            case .risa: return "gracioso"
+            case .solo: return "solo"
+            case .sorpresa: return "sorprendido"
+            case .suspiro: return "agotado"
+            case .triste: return "triste"
             }
         }
     }
@@ -121,17 +183,56 @@ final class AppConfig {
         
         // Mapa de emociones -> imagen de asset + color
         var emotions: [AppConfig.Emotion: EmotionItem] = [
-            .agotada:  EmotionItem(imageName: "agotada",   color: .gray),
-            .angry:    EmotionItem(imageName: "angry",     color: .red),
-            .charlatan:EmotionItem(imageName: "charlatan", color: .teal),
-            .creative: EmotionItem(imageName: "creative",  color: .purple),
-            .facinada: EmotionItem(imageName: "facinada",  color: .pink),
-            .inlove:   EmotionItem(imageName: "inlove",    color: .pink),
-            .suenio:   EmotionItem(imageName: "suenio",    color: .indigo)
+            // Existentes
+//            .agotada:  EmotionItem(imageName: "agotada",   color: .gray),
+//            .angry:    EmotionItem(imageName: "angry",     color: .red),
+//            .charlatan:EmotionItem(imageName: "charlatan", color: .teal),
+//            .creative: EmotionItem(imageName: "creative",  color: .purple),
+//            .facinada: EmotionItem(imageName: "facinada",  color: .pink),
+//            .inlove:   EmotionItem(imageName: "inlove",    color: .pink),
+//            .suenio:   EmotionItem(imageName: "suenio",    color: .indigo),
+            
+            // Nuevas (colores sugeridos; ajusta si prefieres otros)
+//            .adios:           EmotionItem(imageName: "adios",            color: .gray),
+            .alerta:          EmotionItem(imageName: "alerta",           color: .orange),
+            .angelical:       EmotionItem(imageName: "angelical",        color: .mint),
+            .cansado:         EmotionItem(imageName: "cansado",          color: .gray),
+            .carinioso:       EmotionItem(imageName: "carinioso",        color: .pink),
+            .contento:        EmotionItem(imageName: "contento",         color: .yellow),
+            .decepcionado:    EmotionItem(imageName: "decepcionado",     color: .blue),
+            .demonio:         EmotionItem(imageName: "demonio",          color: .red),
+//            .dinero:          EmotionItem(imageName: "dinero",           color: .green),
+            .dormir:          EmotionItem(imageName: "dormir",           color: .indigo),
+            .enamorado:       EmotionItem(imageName: "enamorado",        color: .pink),
+            .enfadado:        EmotionItem(imageName: "enfadado",         color: .red),
+            .enfermo:         EmotionItem(imageName: "enfermo",          color: .teal),
+//            .gracioso:        EmotionItem(imageName: "gracioso",         color: .purple),
+            .hambriento:      EmotionItem(imageName: "hambriento",       color: .orange),
+            .herido:          EmotionItem(imageName: "herido",           color: .red),
+//            .hola:            EmotionItem(imageName: "hola",             color: .blue),
+            .llorando:        EmotionItem(imageName: "llorando",         color: .blue),
+            .loca:            EmotionItem(imageName: "loca",             color: .pink),
+            .muerto:          EmotionItem(imageName: "muerto",           color: .gray),
+            .orgulloso:       EmotionItem(imageName: "orgulloso",        color: .yellow),
+            .pasarPorAlto:    EmotionItem(imageName: "pasar-por-alto",   color: .gray),
+            .pensamiento:     EmotionItem(imageName: "pensamiento",      color: .teal),
+            .risa:            EmotionItem(imageName: "risa",             color: .orange),
+            .solo:            EmotionItem(imageName: "solo",             color: .gray),
+            .sorpresa:        EmotionItem(imageName: "sorpresa",         color: .orange),
+            .suspiro:         EmotionItem(imageName: "suspiro",          color: .gray),
+            .triste:          EmotionItem(imageName: "triste",           color: .blue)
         ]
         
+        // Orden de chips (primero las originales, luego nuevas en un orden razonable)
         var emotionOrder: [AppConfig.Emotion] = [
-            .agotada, .angry, .charlatan, .creative, .facinada, .inlove, .suenio
+            // Originales
+//            .agotada, .angry, .charlatan, .creative, .facinada, .inlove, .suenio,
+            // Nuevas (puedes ajustar el orden a gusto)
+            .contento, .enamorado, .enfadado, .triste, .sorpresa, .alerta,
+            .risa, .pensamiento, .carinioso, .angelical,
+            .cansado, .dormir, // suenio ya está arriba; si no quieres duplicado, quita esta línea
+            .hambriento, .enfermo, .herido, .orgulloso, .solo, .suspiro,
+            .llorando, .loca, .muerto, .demonio, .pasarPorAlto, .decepcionado
         ]
         
         struct RecordButton {

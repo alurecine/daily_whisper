@@ -44,53 +44,120 @@ struct DashboardView: View {
     @State private var chartRange: ChartRange = .month
     
     private let news: [NewsItem] = [
-        .init(title: "Nueva función de grabación", subtitle: "Ahora puedes grabar hasta 30s con mejor calidad.", imageSystemName: "mic.circle.fill", tint: .mint),
-        .init(title: "Mejoras en el reproductor", subtitle: "Controles más claros y correcciones de errores.", imageSystemName: "play.circle.fill", tint: .blue),
-        .init(title: "Sincronización en camino", subtitle: "Muy pronto podrás sincronizar tus audios.", imageSystemName: "icloud.and.arrow.up.fill", tint: .purple),
-        .init(title: "Estadísticas semanales", subtitle: "Estamos preparando métricas útiles para ti.", imageSystemName: "chart.bar.xaxis", tint: .orange)
+        .init(
+            title: "Un espacio hecho para vos",
+            subtitle: "Mejoramos la experiencia para que te sientas cómodo al expresarte.",
+            imageSystemName: "bolt.heart.fill",
+            tint: .purple
+        ),
+        .init(
+            title: "Elegí tu propio ritmo",
+            subtitle: "Nuevos planes para acompañarte como lo necesites.",
+            imageSystemName: "sparkles",
+            tint: .blue
+        ),
+        .init(
+            title: "Tu voz, tus emociones",
+            subtitle: "Ahora cada audio puede reflejar cómo te sentías.",
+            imageSystemName: "face.smiling.fill",
+            tint: .pink
+        ),
+        .init(
+            title: "Mirar tu proceso con calma",
+            subtitle: "Gráficos simples para ver tu evolución sin presión.",
+            imageSystemName: "chart.line.uptrend.xyaxis",
+            tint: .green
+        ),
+        .init(
+            title: "Todo fluye en orden",
+            subtitle: "Tus audios se organizan por fecha automáticamente.",
+            imageSystemName: "clock.fill",
+            tint: .indigo
+        ),
+        .init(
+            title: "La app se adapta a vos",
+            subtitle: "Modo claro y oscuro para cada momento del día.",
+            imageSystemName: "circle.lefthalf.filled",
+            tint: .gray
+        ),
+        .init(
+            title: "Más libertad al grabar",
+            subtitle: "Duración y cantidad de audios según el plan que elijas.",
+            imageSystemName: "mic.circle.fill",
+            tint: .teal
+        )
     ]
     
     private let recommendations: [RecommendationItem] = [
         .init(
-            title: "Consejo de respiración",
-            subtitle: "Prueba grabar tras 1 minuto de respiración consciente.",
-            imageSystemName: "wind",
-            tint: .teal,
+            title: "Habla sin filtros",
+            subtitle: "Este espacio es solo para vos.",
+            imageSystemName: "heart.fill",
+            tint: .pink,
             longText: """
-            La respiración consciente ayuda a centrarte y calmar la mente. Antes de grabar, dedica 60 segundos a inhalar y exhalar profundamente. Esto puede mejorar la claridad de tus ideas y la calidad de tu voz.
-            
-            Sugerencia:
-            - Inhala por la nariz durante 4 segundos.
-            - Mantén el aire 2 segundos.
-            - Exhala por la boca durante 6 segundos.
-            - Repite 8-10 veces.
-            """
+        No hace falta que ordenes tus ideas ni que busques las palabras correctas. Daily Whisper es un lugar seguro donde podés hablar tal como te sentís, sin juicios ni expectativas.
+        
+        Recordá:
+        - No hay audios “buenos” o “malos”.
+        - Podés dudar, repetir, hacer silencios.
+        - Tu voz ya es suficiente.
+        """
         ),
         .init(
-            title: "Graba al amanecer",
-            subtitle: "Muchos usuarios encuentran claridad por la mañana.",
-            imageSystemName: "sunrise.fill",
-            tint: .orange,
+            title: "Un momento de calma",
+            subtitle: "Elegí un lugar tranquilo para grabar.",
+            imageSystemName: "leaf.fill",
+            tint: .green,
             longText: """
-            Las primeras horas del día suelen traer una mente más despejada. Aprovecha esa frescura para grabar tus ideas, objetivos o reflexiones. Podrías notar mayor coherencia y enfoque en tus mensajes.
-            
-            Tip:
-            - Ten listo el dispositivo y un espacio tranquilo.
-            - Anota un tema breve para guiarte antes de grabar.
-            """
+        Buscar un espacio silencioso ayuda a que te conectes mejor con vos mismo. No tiene que ser perfecto, solo un lugar donde puedas estar presente unos minutos.
+        
+        Sugerencias:
+        - Alejate de notificaciones y distracciones.
+        - Permitite unos segundos de silencio antes de empezar.
+        - Dejá que la voz fluya naturalmente.
+        """
         ),
         .init(
-            title: "Usa auriculares",
-            subtitle: "Mejora la calidad y reduce el ruido ambiente.",
-            imageSystemName: "headphones",
-            tint: .purple,
+            title: "Habla de tu día",
+            subtitle: "Lo simple también importa.",
+            imageSystemName: "calendar",
+            tint: .blue,
             longText: """
-            Unos auriculares con micrófono integrado pueden reducir el ruido y mejorar la nitidez del audio. Si grabas en exteriores o en ambientes con eco, los auriculares hacen una gran diferencia.
-            
-            Recomendación:
-            - Ajusta el volumen y prueba una grabación corta.
-            - Evita roces del micrófono con la ropa.
-            """
+        A veces no hace falta una gran reflexión. Contar cómo fue tu día, qué sentiste o qué te quedó dando vueltas puede ser muy poderoso.
+        
+        Podés empezar con:
+        - “Hoy me sentí…”
+        - “Algo que me quedó del día fue…”
+        - “Ahora mismo estoy pensando en…”
+        """
+        ),
+        .init(
+            title: "Escuchate después",
+            subtitle: "Tu voz también puede acompañarte.",
+            imageSystemName: "play.circle.fill",
+            tint: .indigo,
+            longText: """
+        Volver a escuchar tus audios con el tiempo puede ayudarte a ver tu evolución emocional y mental. A veces somos más amables con nosotros mismos cuando nos escuchamos desde afuera.
+        
+        Tip:
+        - Escuchá sin juzgar.
+        - Notá cómo cambió tu tono o tu energía.
+        - Agradecé haberte tomado ese momento.
+        """
+        ),
+        .init(
+            title: "No te apures",
+            subtitle: "No hay una forma correcta de usar la app.",
+            imageSystemName: "hourglass",
+            tint: .gray,
+            longText: """
+        Usá Daily Whisper a tu ritmo. Un audio largo o uno corto, todos los días o solo cuando lo necesites. La constancia nace de la comodidad, no de la exigencia.
+        
+        Recordatorio:
+        - Incluso unos segundos cuentan.
+        - Está bien si hoy no sabés qué decir.
+        - Volvé cuando lo sientas.
+        """
         )
     ]
     
@@ -126,7 +193,7 @@ struct DashboardView: View {
                     avatarImage
                         .resizable()
                         .scaledToFill()
-                        .frame(width: 44, height: 44)
+                        .frame(width: 50, height: 50)
                         .clipShape(Circle())
                         .overlay(
                             Circle()
@@ -151,9 +218,6 @@ struct DashboardView: View {
                         .padding(.horizontal, 16)
                 }
                 
-                SectionHeader("Novedades", titleColor: theme.colors.textPrimary)
-                NewsCarousel(items: news, theme: theme)
-                
                 SectionHeader("Tu semana", titleColor: theme.colors.textPrimary)
                 if lastWeekEntries.isEmpty {
                     PlaceholderCard(height: 120, theme: theme)
@@ -174,6 +238,9 @@ struct DashboardView: View {
                         .padding(.horizontal, 16)
                     }
                 }
+                
+                SectionHeader("Novedades", titleColor: theme.colors.textPrimary)
+                NewsCarousel(items: news, theme: theme)
                 
                 SectionHeader("Recomendaciones", titleColor: theme.colors.textPrimary)
                 RecommendationsCarousel(items: recommendations, theme: theme) { item in
@@ -316,6 +383,8 @@ private struct NewsCarousel: View {
                 }
             }
             .padding(.horizontal, 16)
+            // Alinear verticalmente por si alguna card tuviera más contenido
+            .frame(height: 130) // altura del carrusel para uniformidad
         }
     }
 }
@@ -338,16 +407,19 @@ private struct NewsCard: View {
                 Text(item.title)
                     .font(.headline)
                     .foregroundColor(theme.colors.cardTitle)
-                    .lineLimit(2)
+                    .lineLimit(nil)              // permitir múltiples líneas
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(item.subtitle)
                     .font(.subheadline)
                     .foregroundColor(theme.colors.cardSubtitle)
-                    .lineLimit(2)
+                    .lineLimit(nil)              // permitir múltiples líneas
+                    .fixedSize(horizontal: false, vertical: true)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             Spacer(minLength: 0)
         }
         .padding(14)
-        .frame(width: 300, alignment: .leading)
+        .frame(width: 300, height: 120, alignment: .leading) // tamaño uniforme
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(theme.colors.cardBackground)

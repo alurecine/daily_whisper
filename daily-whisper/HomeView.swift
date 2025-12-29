@@ -586,23 +586,25 @@ private struct EmotionInlinePopup: View {
                     .padding(.top, 12)
                 
                 // Cuadrícula adaptativa
-                LazyVGrid(columns: columns, alignment: .center, spacing: 8) {
-                    ForEach(order, id: \.self) { emotion in
-                        let item = map[emotion]
-                        EmotionChip(
-                            isSelected: selected == emotion,
-                            imageName: item?.imageName,
-                            title: emotion.title,
-                            tint: item?.color ?? .gray
-                        ) {
-                            selected = emotion
-                            onSelect(emotion)
+                ScrollView(showsIndicators: false) { // <-- hacer scroll vertical si hay muchas emociones
+                    LazyVGrid(columns: columns, alignment: .center, spacing: 8) {
+                        ForEach(order, id: \.rawValue) { emotion in
+                            let item = map[emotion]
+                            EmotionChip(
+                                isSelected: selected == emotion,
+                                imageName: item?.imageName,
+                                title: emotion.title,
+                                tint: item?.color ?? .gray
+                            ) {
+                                selected = emotion
+                                onSelect(emotion)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
                 
                 Button(role: .cancel) {
                     onCancel()
@@ -614,7 +616,7 @@ private struct EmotionInlinePopup: View {
                 }
                 .buttonStyle(.plain)
             }
-            .frame(maxWidth: 480)
+            .frame(maxWidth: 480, maxHeight: 520) // limitar altura para forzar scroll cuando haya overflow
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(theme.colors.cardBackground)
@@ -679,4 +681,3 @@ private struct EmotionChip: View {
         isSelected ? tint : Color.black.opacity(0.08)
     }
 }
-
