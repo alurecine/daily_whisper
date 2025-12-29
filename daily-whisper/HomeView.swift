@@ -14,6 +14,7 @@ import AVFAudio
 struct HomeView: View {
     
     @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.themeManager) private var theme
     @StateObject private var recorder = AudioRecorderManager()
     @StateObject private var player = AudioPlayerManager()
     
@@ -98,7 +99,7 @@ struct HomeView: View {
                 .padding(.top, 8)
                 
                 // Filtro fijo por emoción
-                EmotionFilterChips(selected: $selectedFilter)
+                EmotionFilterChips(selected: $selectedFilter, theme: theme)
                     .padding(.horizontal, 16)
                 
                 // Solo la lista hace scroll

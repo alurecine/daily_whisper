@@ -9,6 +9,10 @@ struct ThemeColors {
     let textPrimary: Color
     let textSecondary: Color
     let accent: Color
+    
+    // Nuevos: colores del botón de grabación
+    let recordIdle: Color
+    let recordRecording: Color
 }
 
 enum AppTheme {
@@ -19,23 +23,27 @@ enum AppTheme {
         switch self {
         case .light:
             return ThemeColors(
-                background: AppConfig.shared.ui.backgroundColor, // ya definido
+                background: AppConfig.shared.ui.backgroundColor,
                 cardBackground: .white,
-                cardTitle: Color(.label),          // alto contraste sobre blanco
+                cardTitle: Color(.label),
                 cardSubtitle: Color(.secondaryLabel),
                 textPrimary: .primary,
                 textSecondary: .secondary,
-                accent: AppConfig.shared.ui.accentColor
+                accent: AppConfig.shared.ui.accentColor,
+                recordIdle: AppConfig.shared.ui.accentColor, // por defecto usamos el acento
+                recordRecording: .red // rojo estándar; puedes ajustar si quieres otro tono
             )
         case .dark:
             return ThemeColors(
-                background: AppConfig.shared.ui.backgroundColor, // puedes personalizar
-                cardBackground: .white,           // si quieres, cámbialo a Color(.secondarySystemBackground)
-                cardTitle: .black,         // importantísimo para que se vea sobre blanco
-                cardSubtitle: .black.opacity(0.6),
-                textPrimary: .primary,
+                background: AppConfig.shared.ui.backgroundColor,
+                cardBackground: .black.opacity(0.5),
+                cardTitle: .white,
+                cardSubtitle: Color(.secondaryLabel),
+                textPrimary: .white,
                 textSecondary: .secondary,
-                accent: AppConfig.shared.ui.accentColor
+                accent: AppConfig.shared.ui.accentColor,
+                recordIdle: AppConfig.shared.ui.accentColor,
+                recordRecording: .red
             )
         }
     }
@@ -74,14 +82,12 @@ final class ThemeManager: ObservableObject {
     
     private static func resolveTheme(useSystem: Bool, forceDark: Bool, scheme: ColorScheme?) -> AppTheme {
         if useSystem {
-            // Si el usuario quiere el sistema, usamos el esquema actual (si no hay, asumimos light)
             if let scheme {
                 return scheme == .dark ? .dark : .light
             } else {
                 return .light
             }
         } else {
-            // Usuario fuerza modo
             return forceDark ? .dark : .light
         }
     }
