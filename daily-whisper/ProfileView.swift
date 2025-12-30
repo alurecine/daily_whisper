@@ -35,6 +35,9 @@ struct ProfileView: View {
     // Flag para controlar el estado del onboarding desde Perfil (debug)
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
     
+    // Store de notificaciones (refleja permiso real del sistema)
+    @StateObject private var pushStore = NotificationsManager.store
+    
     // Color de acento centralizado
     private var accent: Color { AppConfig.shared.ui.accentColor }
     
@@ -193,22 +196,21 @@ struct ProfileView: View {
                 // Notificaciones
                 Section(
                     header: Text("Notificaciones"),
-                    footer: Text("Configura cómo y cuándo quieres recibir avisos.")
+                    footer: Text(footerText)
                 ) {
-                    Toggle("Notificaciones push", isOn: .init(
-                        get: { UserDefaults.standard.bool(forKey: "profile.pushEnabled") },
-                        set: { UserDefaults.standard.set($0, forKey: "profile.pushEnabled") }
-                    ))
+                    Toggle("Notificaciones push", isOn: pushStore.desiredEnabledBinding)
                     Toggle("Sonidos", isOn: .init(
                         get: { UserDefaults.standard.bool(forKey: "profile.soundEnabled") },
                         set: { UserDefaults.standard.set($0, forKey: "profile.soundEnabled") }
                     ))
-                    .disabled(!UserDefaults.standard.bool(forKey: "profile.pushEnabled"))
-                    .opacity(UserDefaults.standard.bool(forKey: "profile.pushEnabled") ? 1 : 0.5)
+                    .disabled(!(pushStore.isAuthorized && pushStore.isRegisteredForRemoteNotifications))
+                    .opacity(pushStore.isAuthorized && pushStore.isRegisteredForRemoteNotifications ? 1 : 0.5)
                     Toggle("Resumen diario", isOn: .init(
                         get: { UserDefaults.standard.bool(forKey: "profile.dailySummary") },
                         set: { UserDefaults.standard.set($0, forKey: "profile.dailySummary") }
                     ))
+                    .disabled(!(pushStore.isAuthorized && pushStore.isRegisteredForRemoteNotifications))
+                    .opacity(pushStore.isAuthorized && pushStore.isRegisteredForRemoteNotifications ? 1 : 0.5)
                 }
                 
                 // Más
@@ -250,16 +252,14 @@ struct ProfileView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .scrollIndicators(.hidden) // Ocultar indicador de scroll del Form
+            .scrollIndicators(.hidden)
             .onChange(of: pickedItem) { _, newValue in
                 Task { await loadPickedPhoto(newValue) }
             }
             .onAppear {
-                // Sincronizar AppConfig con el valor persistido del rol
                 if let role = AppConfig.UserRole(rawValue: storedUserRoleRaw) {
                     AppConfig.shared.subscription.role = role
                 }
-                // Cargar o crear el usuario
                 loadUser()
             }
             .onDisappear {
@@ -274,16 +274,26 @@ struct ProfileView: View {
         }
     }
     
+    private var footerText: String {
+        switch pushStore.authorizationStatus {
+        case .denied:
+            return "Las notificaciones están desactivadas en Ajustes. Toca el interruptor para abrir Ajustes y habilitarlas."
+        case .notDetermined:
+            return "Te pediremos permiso cuando actives el interruptor."
+        case .authorized, .provisional, .ephemeral:
+            return "Configura cómo y cuándo quieres recibir avisos."
+        @unknown default:
+            return "Configura cómo y cuándo quieres recibir avisos."
+        }
+    }
+    
     // MARK: - Carga y guardado
     
     func loadUser() {
         do {
-            // Obtener o crear
             let u = try UserRepository.fetchOrCreateUser(in: viewContext)
             self.user = u
             
-            // Si el usuario recién se creó y existen valores previos en AppStorage,
-            // migralos una sola vez.
             let defaults = UserDefaults.standard
             let storedName = defaults.string(forKey: "profile.name")
             let storedEmail = defaults.string(forKey: "profile.email")
@@ -306,13 +316,11 @@ struct ProfileView: View {
                 u.updatedAt = Date()
                 try? viewContext.save()
                 
-                // Limpia AppStorage para no duplicar
                 defaults.removeObject(forKey: "profile.name")
                 defaults.removeObject(forKey: "profile.email")
                 defaults.removeObject(forKey: "profile.avatarData")
             }
             
-            // Reflejar en estados locales
             self.name = u.name ?? ""
             self.email = u.email ?? ""
             self.avatarImageData = u.profileImageData
@@ -322,7 +330,6 @@ struct ProfileView: View {
         }
     }
     
-    // Guarda solo si hubo cambios en nombre/email/imagen vs el objeto User actual
     private func autoSaveIfNeeded() {
         guard let u = user else { return }
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -338,7 +345,6 @@ struct ProfileView: View {
         
         guard nameChanged || emailChanged || avatarChanged else { return }
         
-        // Aplicar cambios acumulados
         u.name = trimmedName.isEmpty ? nil : trimmedName
         u.email = trimmedEmail.isEmpty ? nil : trimmedEmail
         if avatarChanged {
@@ -360,7 +366,6 @@ struct ProfileView: View {
         if let data = try? await item.loadTransferable(type: Data.self) {
             await MainActor.run {
                 self.avatarImageData = data
-                // Guardar directo en Core Data (opcional; onDisappear también lo guardará si cambió)
                 if let u = self.user {
                     u.profileImageData = data
                     u.updatedAt = Date()
@@ -374,3 +379,4 @@ struct ProfileView: View {
 #Preview {
     NavigationStack { ProfileView() }
 }
+

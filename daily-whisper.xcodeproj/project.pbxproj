@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		B3A933382F046D1700CC1503 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = B3A933372F046D1700CC1503 /* FirebaseMessaging */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		B384A61A2EF5E3F700EC18E1 /* daily-whisper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "daily-whisper.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -36,6 +40,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B3A933382F046D1700CC1503 /* FirebaseMessaging in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +83,7 @@
 			);
 			name = "daily-whisper";
 			packageProductDependencies = (
+				B3A933372F046D1700CC1503 /* FirebaseMessaging */,
 			);
 			productName = "daily-whisper";
 			productReference = B384A61A2EF5E3F700EC18E1 /* daily-whisper.app */;
@@ -110,6 +116,9 @@
 			);
 			mainGroup = B384A6112EF5E3F700EC18E1;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				B3A933362F046D1700CC1503 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B384A61B2EF5E3F700EC18E1 /* Products */;
 			projectDirPath = "";
@@ -267,6 +276,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "daily-whisper/daily-whisper.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = GKHZ4MY3NF;
@@ -304,6 +314,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "daily-whisper/daily-whisper.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = GKHZ4MY3NF;
@@ -358,6 +369,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		B3A933362F046D1700CC1503 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.7.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		B3A933372F046D1700CC1503 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B3A933362F046D1700CC1503 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = B384A6122EF5E3F700EC18E1 /* Project object */;
 }

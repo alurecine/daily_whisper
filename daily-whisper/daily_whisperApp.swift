@@ -7,6 +7,7 @@
 
 import SwiftUI
 internal import CoreData
+import FirebaseCore
 
 @main
 struct daily_whisperApp: App {
@@ -40,6 +41,11 @@ struct daily_whisperApp: App {
     // Theme manager global
     @State private var themeManager = ThemeManager() // init sin tocar self
     @Environment(\.colorScheme) private var colorScheme
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
+    init() {
+        // FirebaseApp.configure() se ejecuta en AppDelegate. Eliminamos la duplicación aquí.
+    }
     
     var body: some Scene {
         WindowGroup {
@@ -99,6 +105,9 @@ struct daily_whisperApp: App {
                     // Actualizar tema al volver
                     let targetScheme: ColorScheme? = useSystemAppearance ? colorScheme : (forceDarkMode ? .dark : .light)
                     themeManager.update(for: targetScheme)
+
+                    // Reintentar registro de notificaciones si el usuario las habilitó en Ajustes
+                    NotificationsManager.shared.ensureRegisteredIfAuthorized()
                     
                     guard requireOnForeground else { return }
                     guard wasUnlockedOnce else { return }
@@ -208,4 +217,3 @@ struct PersistenceController {
         }
     }
 }
-

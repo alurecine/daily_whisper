@@ -18,21 +18,14 @@ struct RootTabView: View {
     @AppStorage("profile.useSystemAppearance") private var useSystemAppearance: Bool = true
     @AppStorage("profile.forceDarkMode") private var forceDarkMode: Bool = false
     
-    // SceneStorage mantiene el estado mientras la escena viva, pero no entre lanzamientos
-    @SceneStorage("ui.selectedTab.scene") private var selectedTabRaw: Int = AppTab.dashboard.rawValue
-    
-    private var selectedTab: Binding<AppTab> {
-        Binding(
-            get: { AppTab(rawValue: selectedTabRaw) ?? .dashboard },
-            set: { selectedTabRaw = $0.rawValue }
-        )
-    }
+    // Antes: SceneStorage para recordar el tab. Ahora: State local que siempre arranca en .dashboard
+    @State private var selectedTab: AppTab = .dashboard
     
     var body: some View {
-        TabView(selection: selectedTab) {
+        TabView(selection: $selectedTab) {
             NavigationStack {
                 // Pasamos el binding a DashboardView
-                DashboardView(selectedTab: selectedTab)
+                DashboardView(selectedTab: $selectedTab)
                     .navigationBarBackButtonHidden(true) // Oculta "Atrás" en el primer tab
             }
             .tabItem {
@@ -79,3 +72,4 @@ struct GlobalColorSchemeApplier: ViewModifier {
 #Preview {
     RootTabView()
 }
+

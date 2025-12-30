@@ -1,6 +1,7 @@
 import SwiftUI
 import AVFoundation
 import UserNotifications
+import UIKit
 
 struct OnboardingView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
@@ -88,6 +89,9 @@ struct OnboardingView: View {
         }
     }
     private func finish() {
+        // Pedir permiso y registrar APNs a través del manager
+        NotificationsManager.shared.requestAuthorizationAndRegisterForRemoteNotifications()
+        // Marcar onboarding como completado para iniciar la app
         hasCompletedOnboarding = true
     }
     
@@ -102,7 +106,7 @@ struct OnboardingView: View {
     }
     
     private func requestMic() {
-        AVAudioSession.sharedInstance().requestRecordPermission { granted in
+        AVAudioSession.sharedInstance().requestRecordPermission { _ in
             DispatchQueue.main.async {
                 self.micStatus = AVAudioSession.sharedInstance().recordPermission
             }
@@ -110,7 +114,7 @@ struct OnboardingView: View {
     }
     
     private func requestNotifications() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in
             DispatchQueue.main.async {
                 self.refreshPermissionStates()
             }
