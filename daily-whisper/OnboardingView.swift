@@ -11,6 +11,8 @@ struct OnboardingView: View {
     @State private var micStatus: AVAudioSession.RecordPermission = .undetermined
     @State private var notifStatus: UNAuthorizationStatus = .notDetermined
     
+    @Environment(\.themeManager) private var theme
+
     private var accent: Color { AppConfig.shared.ui.accentColor }
     
     var body: some View {
@@ -35,12 +37,7 @@ struct OnboardingView: View {
                     .tag(1)
                     .padding(.horizontal, 24)
                 
-                OnboardingPermissionsPage(
-                    micStatus: micStatus,
-                    notifStatus: notifStatus,
-                    requestMic: requestMic,
-                    requestNotifications: requestNotifications
-                )
+                OnboardingPermissionsPage()
                 .tag(2)
                 .padding(.horizontal, 24)
             }
@@ -148,6 +145,7 @@ private struct OnboardingIntroPage: View {
 }
 
 private struct OnboardingPlansPage: View {
+    @Environment(\.themeManager) private var theme
     let accent: Color
     
     var body: some View {
@@ -160,6 +158,7 @@ private struct OnboardingPlansPage: View {
             
             Text("Elegí cómo acompañarte")
                 .font(.title2.bold())
+                .foregroundColor(theme.colors.cardTitle)
             
             VStack(spacing: 12) {
                 PlanRow(title: "Normal", subtitle: "Un espacio diario para escucharte • 1 audio por día • Últimos 7 días • Hasta 30 segundos", icon: "person.crop.circle")
@@ -181,6 +180,7 @@ private struct OnboardingPlansPage: View {
     }
     
     private struct PlanRow: View {
+        @Environment(\.themeManager) private var theme
         let title: String
         let subtitle: String
         let icon: String
@@ -194,42 +194,25 @@ private struct OnboardingPlansPage: View {
                     .background(AppConfig.shared.ui.accentColor.opacity(0.12))
                     .clipShape(Circle())
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(title).font(.headline)
-                    Text(subtitle).font(.subheadline).foregroundColor(.secondary)
+                    Text(title)
+                        .font(.headline)
+                        .foregroundStyle(theme.colors.cardTitle)
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(theme.colors.cardSubtitle)
                 }
                 Spacer()
             }
             .padding(10)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(AppConfig.shared.ui.cardBackgroundColor)
+                    .fill(theme.colors.cardBackground)
             )
         }
     }
 }
 
 private struct OnboardingPermissionsPage: View {
-    let micStatus: AVAudioSession.RecordPermission
-    let notifStatus: UNAuthorizationStatus
-    let requestMic: () -> Void
-    let requestNotifications: () -> Void
-    
-    private func statusTextMic(_ status: AVAudioSession.RecordPermission) -> String {
-        switch status {
-        case .undetermined: return "No solicitado"
-        case .denied: return "Denegado"
-        case .granted: return "Concedido"
-        @unknown default: return "Desconocido"
-        }
-    }
-    private func statusTextNotif(_ status: UNAuthorizationStatus) -> String {
-        switch status {
-        case .notDetermined: return "No solicitado"
-        case .denied: return "Denegado"
-        case .authorized, .provisional, .ephemeral: return "Concedido"
-        @unknown default: return "Desconocido"
-        }
-    }
     
     var body: some View {
         VStack(spacing: 16) {
@@ -245,17 +228,12 @@ private struct OnboardingPermissionsPage: View {
             VStack(spacing: 12) {
                 PermissionRow(
                     title: "Micrófono",
-                    subtitle: "Para que puedas expresar lo que sentís.",
-                    status: statusTextMic(micStatus),
-                    actionTitle: micStatus == .granted ? "Listo" : "Permitir",
-                    action: requestMic
+                    subtitle: "Para que puedas expresar lo que sentís."
                 )
+                Divider()
                 PermissionRow(
                     title: "Notificaciones",
-                    subtitle: "Para acompañarte con recordatorios suaves.",
-                    status: statusTextNotif(notifStatus),
-                    actionTitle: (notifStatus == .authorized || notifStatus == .provisional || notifStatus == .ephemeral) ? "Listo" : "Permitir",
-                    action: requestNotifications
+                    subtitle: "Para acompañarte con recordatorios suaves."
                 )
             }
             .padding(16)
@@ -281,34 +259,26 @@ private struct OnboardingPermissionsPage: View {
     private struct PermissionRow: View {
         let title: String
         let subtitle: String
-        let status: String
-        let actionTitle: String
-        let action: () -> Void
         
         var body: some View {
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title).font(.headline)
-                    Text(subtitle).font(.subheadline).foregroundColor(.secondary)
+            VStack(alignment: .leading) {
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(title).font(.headline)
+                        Text(subtitle).font(.subheadline).foregroundColor(.secondary)
+                    }
+                    Spacer()
                 }
-                Spacer()
-                Text(status)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                Button(actionTitle) {
-                    action()
-                }
-                .font(.subheadline.weight(.semibold))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(AppConfig.shared.ui.accentColor.opacity(0.15))
-                .clipShape(Capsule())
+                .padding(10)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(AppConfig.shared.ui.cardBackgroundColor)
+                )
             }
-            .padding(10)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(AppConfig.shared.ui.cardBackgroundColor)
-            )
         }
     }
+}
+
+#Preview {
+    OnboardingView()
 }
