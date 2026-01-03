@@ -1,10 +1,3 @@
-//
-//  AudioRowView.swift
-//  daily-whisper
-//
-//  Created by Alan Recine on 19/12/2025.
-//
-
 import Foundation
 import SwiftUI
 
@@ -13,11 +6,12 @@ struct AudioRowView: View {
     @ObservedObject var player: AudioPlayerManager
     var onDelete: (() -> Void)? = nil
     
+    @Environment(\.themeManager) private var theme
+    
     private var isPlaying: Bool {
         player.currentEntryID == entry.id && player.isPlaying
     }
     
-    // Emociones centralizadas
     private var emotion: AppConfig.Emotion? {
         AppConfig.Emotion.from(raw: entry.emotion)
     }
@@ -28,14 +22,12 @@ struct AudioRowView: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            // Emotion tag grande al inicio (izquierda)
             EmotionLeadingTag(
                 title: emotion?.title,
                 color: emotionItem?.color ?? .gray,
                 imageName: emotionItem?.imageName
             )
             
-            // Play/Stop
             Button {
                 player.toggle(entry: entry)
             } label: {
@@ -45,7 +37,6 @@ struct AudioRowView: View {
             }
             .buttonStyle(.plain)
             
-            // Texto principal
             VStack(alignment: .leading, spacing: 6) {
                 Text(primaryText)
                     .font(.body)
@@ -57,7 +48,6 @@ struct AudioRowView: View {
             
             Spacer()
             
-            // Borrar
             if let onDelete {
                 Button(role: .destructive) {
                     onDelete()
@@ -71,16 +61,15 @@ struct AudioRowView: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(theme.colors.cardBackground)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Color.black.opacity(0.06), lineWidth: 0.5)
+                .stroke(theme.colors.separator, lineWidth: 0.5)
         )
     }
     
     private var primaryText: String {
-        // Consistencia con CardRow: "Audio • HH:mm"
         let f = DateFormatter()
         f.timeStyle = .short
         let time = f.string(from: entry.date ?? Date())
@@ -103,7 +92,7 @@ private struct EmotionLeadingTag: View {
                 Image(imageName)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 28, height: 28) // más grande y claro
+                    .frame(width: 28, height: 28)
                     .accessibilityHidden(true)
             }
             if let title {

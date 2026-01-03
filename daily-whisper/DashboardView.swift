@@ -220,7 +220,7 @@ struct DashboardView: View {
                 
                 SectionHeader("Tu semana", titleColor: theme.colors.textPrimary)
                 if lastWeekEntries.isEmpty {
-                    PlaceholderCard(height: 120, theme: theme)
+                    PlaceholderCard(height: 120)
                         .overlay(
                             Text("Aún no hay audios esta semana")
                                 .font(.subheadline)
@@ -240,7 +240,7 @@ struct DashboardView: View {
                 }
                 
                 SectionHeader("Novedades", titleColor: theme.colors.textPrimary)
-                NewsCarousel(items: news, theme: theme)
+                NewsCarousel(items: news)
                 
                 SectionHeader("Recomendaciones", titleColor: theme.colors.textPrimary)
                 RecommendationsCarousel(items: recommendations, theme: theme) { item in
@@ -346,8 +346,8 @@ private struct SectionHeader: View {
 
 private struct PlaceholderCard: View {
     var height: CGFloat = 140
-    let theme: ThemeManager
-    
+    @Environment(\.themeManager) private var theme
+
     var body: some View {
         RoundedRectangle(cornerRadius: 16, style: .continuous)
             .fill(theme.colors.cardBackground)
@@ -373,13 +373,13 @@ private struct NewsItem: Identifiable {
 
 private struct NewsCarousel: View {
     let items: [NewsItem]
-    let theme: ThemeManager
-    
+    @Environment(\.themeManager) private var theme
+
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 14) {
                 ForEach(items) { item in
-                    NewsCard(item: item, theme: theme)
+                    NewsCard(item: item)
                 }
             }
             .padding(.horizontal, 16)
@@ -391,8 +391,8 @@ private struct NewsCarousel: View {
 
 private struct NewsCard: View {
     let item: NewsItem
-    let theme: ThemeManager
-    
+    @Environment(\.themeManager) private var theme
+
     var body: some View {
         HStack(spacing: 12) {
             ZStack {

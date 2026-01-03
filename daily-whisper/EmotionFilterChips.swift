@@ -1,24 +1,16 @@
-//
-//  EmotionFilterChips.swift
-//  daily-whisper
-//
-//  Created by Alan Recine on 26/12/2025.
-//
-
 import SwiftUI
 
 struct EmotionFilterChips: View {
     @Binding var selected: AppConfig.Emotion?
     let theme: ThemeManager
 
-    private var accent: Color { AppConfig.shared.ui.accentColor }
+    private var accent: Color { theme.colors.accent }
     private var order: [AppConfig.Emotion] { AppConfig.shared.ui.emotionOrder }
     private var map: [AppConfig.Emotion: AppConfig.UI.EmotionItem] { AppConfig.shared.ui.emotions }
     
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                // "Todos" chip
                 Chip(
                     isSelected: selected == nil,
                     imageName: nil,
@@ -86,10 +78,10 @@ private struct Chip: View {
     }
     
     private var background: some ShapeStyle {
-        isSelected ? AnyShapeStyle(tint.opacity(0.18)) : AnyShapeStyle(Color(.secondarySystemBackground))
+        isSelected ? AnyShapeStyle(tint.opacity(0.18)) : AnyShapeStyle(theme.colors.chipBackground)
     }
     private var border: Color {
-        isSelected ? tint : theme.colors.cardTitle
+        isSelected ? tint : theme.colors.separator
     }
 }
 

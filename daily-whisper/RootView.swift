@@ -19,5 +19,6 @@ struct RootView: View {
                     }
             }
         }
+        .dismissKeyboardOnTap()
     }
 }

@@ -14,19 +14,14 @@ enum AppTab: Int {
 }
 
 struct RootTabView: View {
-    // Ya no usamos AppStorage para el color de acento
-    @AppStorage("profile.useSystemAppearance") private var useSystemAppearance: Bool = true
-    @AppStorage("profile.forceDarkMode") private var forceDarkMode: Bool = false
-    
-    // Antes: SceneStorage para recordar el tab. Ahora: State local que siempre arranca en .dashboard
+    @Environment(\.themeManager) private var theme
     @State private var selectedTab: AppTab = .dashboard
     
     var body: some View {
         TabView(selection: $selectedTab) {
             NavigationStack {
-                // Pasamos el binding a DashboardView
                 DashboardView(selectedTab: $selectedTab)
-                    .navigationBarBackButtonHidden(true) // Oculta "Atrás" en el primer tab
+                    .navigationBarBackButtonHidden(true)
             }
             .tabItem {
                 Label("Dashboard", systemImage: "rectangle.grid.2x2.fill")
@@ -50,26 +45,10 @@ struct RootTabView: View {
             }
             .tag(AppTab.profile)
         }
-        .tint(AppConfig.shared.ui.accentColor) // Color de acento global desde AppConfig
-        .modifier(GlobalColorSchemeApplier(useSystemAppearance: useSystemAppearance, forceDarkMode: forceDarkMode))
-    }
-}
-
-// ViewModifier global para esquema de color
-struct GlobalColorSchemeApplier: ViewModifier {
-    let useSystemAppearance: Bool
-    let forceDarkMode: Bool
-    
-    func body(content: Content) -> some View {
-        if useSystemAppearance {
-            content
-        } else {
-            content.preferredColorScheme(forceDarkMode ? .dark : .light)
-        }
+        .tint(theme.colors.accent)
     }
 }
 
 #Preview {
     RootTabView()
 }
-

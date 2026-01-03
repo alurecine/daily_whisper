@@ -1,10 +1,3 @@
-//
-//  IntegratedRecordingOverlay.swift
-//  daily-whisper
-//
-//  Created by Alan Recine on 26/12/2025.
-//
-
 import SwiftUI
 
 struct IntegratedRecordingOverlay: View {
@@ -13,31 +6,28 @@ struct IntegratedRecordingOverlay: View {
     @ObservedObject var recorder: AudioRecorderManager
     let onFinish: (URL, Double, AppConfig.Emotion) -> Void
     
-    // Estado interno
     @State private var tempURL: URL?
     @State private var selectedEmotion: AppConfig.Emotion = .angelical
     
-    // Estilo centralizado
-    private var accent: Color { AppConfig.shared.ui.accentColor }
+    @Environment(\.themeManager) private var theme
+    
+    private var accent: Color { theme.colors.accent }
     private var maxDuration: TimeInterval { AppConfig.shared.audio.maxRecordingDuration }
     private var emotionOrder: [AppConfig.Emotion] { AppConfig.shared.ui.emotionOrder }
     private var emotionMap: [AppConfig.Emotion: AppConfig.UI.EmotionItem] { AppConfig.shared.ui.emotions }
     
     var body: some View {
         ZStack {
-            // Fondo desenfocado
             Rectangle()
                 .fill(.ultraThinMaterial)
                 .ignoresSafeArea()
                 .onTapGesture {
-                    // Tocar fuera cierra si no está grabando
                     if !recorder.isRecording {
                         isPresented = false
                     }
                 }
             
             VStack(spacing: 16) {
-                // Barra superior con cerrar
                 HStack {
                     Spacer()
                     Button {
@@ -57,21 +47,17 @@ struct IntegratedRecordingOverlay: View {
                 
                 Spacer()
                 
-                // Temporizador
                 Text(timeString(recorder.currentTime) + " / " + timeString(maxDuration))
                     .font(.title3.monospacedDigit().weight(.semibold))
                     .foregroundColor(.primary)
                     .padding(.bottom, 4)
                 
-                // Botón de grabación reutilizando tu componente
                 RecordButtonView(recorder: recorder) { url, duration in
                     tempURL = url
-                    // No finalizamos aquí: dejamos que el usuario confirme con emoción seleccionada
                 }
                 .allowsHitTesting(!isDisabled)
                 .opacity(isDisabled ? 0.5 : 1.0)
                 
-                // Picker de emoción en chips
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(emotionOrder, id: \.rawValue) { emotion in
@@ -92,10 +78,8 @@ struct IntegratedRecordingOverlay: View {
                 }
                 .padding(.top, 8)
                 
-                // Botones de acción
                 HStack(spacing: 12) {
                     Button {
-                        // Cancelar
                         if recorder.isRecording {
                             stopRecordingAndMaybeSave(save: false)
                         }
@@ -105,7 +89,7 @@ struct IntegratedRecordingOverlay: View {
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
-                            .background(Color(.secondarySystemBackground))
+                            .background(theme.colors.cardBackground)
                             .foregroundColor(.primary)
                             .cornerRadius(12)
                     }
@@ -113,10 +97,8 @@ struct IntegratedRecordingOverlay: View {
                     
                     Button {
                         if recorder.isRecording {
-                            // Si aún está grabando, detener y guardar
                             stopRecordingAndMaybeSave(save: true)
                         } else {
-                            // Ya detenido: si tenemos URL, guardar
                             if let url = tempURL {
                                 onFinish(url, recorder.currentTime, selectedEmotion)
                                 tempURL = nil
@@ -143,7 +125,6 @@ struct IntegratedRecordingOverlay: View {
             }
         }
         .onChange(of: recorder.currentTime) { _, newValue in
-            // Si alcanzó el máximo, detener automáticamente
             if recorder.isRecording && newValue >= maxDuration {
                 stopRecordingAndMaybeSave(save: true)
             }
@@ -153,7 +134,6 @@ struct IntegratedRecordingOverlay: View {
     private func stopRecordingAndMaybeSave(save: Bool) {
         recorder.stopRecording()
         guard save else {
-            // Si no guardamos, limpiar archivo temporal si existe
             if let url = tempURL {
                 try? FileManager.default.removeItem(at: url)
                 tempURL = nil
@@ -176,13 +156,14 @@ struct IntegratedRecordingOverlay: View {
     }
 }
 
-// Chip reutilizable para el picker de emoción dentro del overlay
 private struct EmotionChip: View {
     let isSelected: Bool
     let imageName: String?
     let title: String
     let tint: Color
     let action: () -> Void
+    
+    @Environment(\.themeManager) private var theme
     
     var body: some View {
         Button(action: action) {
@@ -214,20 +195,9 @@ private struct EmotionChip: View {
     }
     
     private var background: some ShapeStyle {
-        isSelected ? AnyShapeStyle(tint.opacity(0.2)) : AnyShapeStyle(Color(.secondarySystemBackground))
+        isSelected ? AnyShapeStyle(tint.opacity(0.2)) : AnyShapeStyle(theme.colors.chipBackground)
     }
     private var border: Color {
-        isSelected ? tint : Color.black.opacity(0.08)
-    }
-}
-
-#Preview {
-    ZStack {
-        Color(.systemBackground).ignoresSafeArea()
-        IntegratedRecordingOverlay(
-            isPresented: .constant(true),
-            isDisabled: false,
-            recorder: AudioRecorderManager()
-        ) { _, _, _ in }
+        isSelected ? tint : theme.colors.separator
     }
 }

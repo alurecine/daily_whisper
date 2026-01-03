@@ -44,7 +44,7 @@ struct HomeView: View {
     @State private var showQuickRecordOverlay = false
     
     // Color de acento centralizado
-    private var accent: Color { AppConfig.shared.ui.accentColor }
+    private var accent: Color { theme.colors.accent }
     
     // MARK: - Restricción de audios por día (ahora configurable)
     private var hasReachedDailyLimit: Bool {
@@ -85,7 +85,7 @@ struct HomeView: View {
     var body: some View {
         ZStack {
             // Fondo base (centralizado)
-            AppConfig.shared.ui.backgroundColor.ignoresSafeArea()
+            theme.colors.background.ignoresSafeArea()
             
             // Contenido principal: encabezado fijo + filtros fijos + lista scrollable
             VStack(alignment: .leading, spacing: 12) {
@@ -120,7 +120,7 @@ struct HomeView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 40)
-                            .background(AppConfig.shared.ui.backgroundColor)
+                            .background(theme.colors.background)
                         } else {
                             LazyVStack(alignment: .leading, spacing: 18, pinnedViews: []) {
                                 ForEach(groupedByDay, id: \.day) { group in
@@ -154,7 +154,7 @@ struct HomeView: View {
                     }
                 }
             }
-            .background(AppConfig.shared.ui.backgroundColor)
+            .background(theme.colors.background)
             
             // Banner permanente para usuarios normales (queda sobre el contenido)
             if AppConfig.shared.subscription.role == .normal {
@@ -422,7 +422,8 @@ private struct QuickRecordOverlay: View {
     let onFinish: (URL, Double) -> Void
     let onClose: () -> Void
     
-    private var accent: Color { AppConfig.shared.ui.accentColor }
+    @Environment(\.themeManager) private var theme
+    private var accent: Color { theme.colors.accent }
     
     // Frases
     let recordingPrompts: [String] = [
@@ -568,7 +569,6 @@ private struct EmotionInlinePopup: View {
     
     // Columnas adaptativas para iPhone/iPad
     private var columns: [GridItem] {
-        // Mínimo 140 para que quepa imagen + texto; se adaptará a 2, 3 o más columnas
         [GridItem(.adaptive(minimum: 140, maximum: 220), spacing: 8)]
     }
     
@@ -586,7 +586,7 @@ private struct EmotionInlinePopup: View {
                     .padding(.top, 12)
                 
                 // Cuadrícula adaptativa
-                ScrollView(showsIndicators: false) { // <-- hacer scroll vertical si hay muchas emociones
+                ScrollView(showsIndicators: false) {
                     LazyVGrid(columns: columns, alignment: .center, spacing: 8) {
                         ForEach(order, id: \.rawValue) { emotion in
                             let item = map[emotion]
@@ -616,14 +616,14 @@ private struct EmotionInlinePopup: View {
                 }
                 .buttonStyle(.plain)
             }
-            .frame(maxWidth: 480, maxHeight: 520) // limitar altura para forzar scroll cuando haya overflow
+            .frame(maxWidth: 480, maxHeight: 520)
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(theme.colors.cardBackground)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(Color.black.opacity(0.06), lineWidth: 0.5)
+                    .stroke(theme.colors.separator, lineWidth: 0.5)
             )
             .shadow(color: Color.black.opacity(0.2), radius: 18, x: 0, y: 10)
             .transition(.opacity)

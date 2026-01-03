@@ -15,6 +15,7 @@ struct ProfileView: View {
     // Estados UI (editables)
     @State private var name: String = ""
     @State private var email: String = ""
+    @State private var phone: String = "" // Nuevo: teléfono solo en UserDefaults por ahora
     @State private var avatarImageData: Data?
     
     // Estados de control
@@ -22,26 +23,21 @@ struct ProfileView: View {
     @State private var pickedItem: PhotosPickerItem?
     @State private var showPlans = false
     
-    // Preferencias de apariencia (se mantienen en AppStorage como antes)
-    @AppStorage("profile.useSystemAppearance") private var useSystemAppearance: Bool = true
-    @AppStorage("profile.forceDarkMode") private var forceDarkMode: Bool = false
-    
-    // Preferencia de seguridad (se mantiene en AppStorage)
+    // Preferencia de seguridad
     @AppStorage("security.requireOnForeground") private var requireOnForeground: Bool = false
     
-    // Rol persistido (se mantiene en AppStorage)
+    // Rol persistido
     @AppStorage("user.role") private var storedUserRoleRaw: String = AppConfig.UserRole.normal.rawValue
     
     // Flag para controlar el estado del onboarding desde Perfil (debug)
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding: Bool = false
     
-    // Store de notificaciones (refleja permiso real del sistema)
+    // Store de notificaciones
     @StateObject private var pushStore = NotificationsManager.store
     
     // Color de acento centralizado
     private var accent: Color { AppConfig.shared.ui.accentColor }
     
-    // Vista de la imagen del perfil
     var avatarImage: Image {
         if let data = avatarImageData,
            let uiImage = UIImage(data: data) {
@@ -50,7 +46,6 @@ struct ProfileView: View {
         return Image(systemName: "person.crop.circle.fill")
     }
     
-    // Descripción legible del plan actual
     private var currentPlanDescription: String {
         switch AppConfig.shared.subscription.role {
         case .normal:
@@ -65,7 +60,7 @@ struct ProfileView: View {
     var body: some View {
         ZStack {
             Form {
-                // Header con foto + nombre + email
+                // Header
                 Section {
                     VStack(spacing: 12) {
                         PhotosPicker(
@@ -103,13 +98,20 @@ struct ProfileView: View {
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                                 .textSelection(.disabled)
+                            // Nuevo: Teléfono debajo del email si existe
+                            if !phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                Text(phone)
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                    .textSelection(.disabled)
+                            }
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
                     .listRowBackground(Color(.systemGroupedBackground))
                 }
                 
-                // Datos personales editables
+                // Datos personales
                 Section(header: Text("Datos personales")) {
                     TextField("Nombre", text: $name)
                         .textContentType(.name)
@@ -117,17 +119,18 @@ struct ProfileView: View {
                         .keyboardType(.emailAddress)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                    // Nuevo: Teléfono (UserDefaults)
+                    TextField("Teléfono", text: $phone)
+                        .keyboardType(.phonePad)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .onChange(of: phone) { _, newValue in
+                            // Guardado inmediato opcional para no perderlo
+                            UserDefaults.standard.set(newValue, forKey: "profile.phone")
+                        }
                 }
                 
-                // Apariencia
-                Section(header: Text("Apariencia")) {
-                    Toggle("Usar apariencia del sistema", isOn: $useSystemAppearance)
-                    Toggle("Forzar modo oscuro", isOn: $forceDarkMode)
-                        .disabled(useSystemAppearance)
-                        .opacity(useSystemAppearance ? 0.5 : 1)
-                }
-                
-                // Suscripción (estado actual + acceso a planes)
+                // Suscripción
                 Section(header: Text("Suscripción")) {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
@@ -173,7 +176,7 @@ struct ProfileView: View {
                     }
                 }
                 
-                // NUEVO: Selector rápido de rol de suscripción (debug)
+                // Suscripción (debug)
                 Section(header: Text("Suscripción (debug)")) {
                     Picker("Rol actual", selection: Binding(
                         get: { AppConfig.shared.subscription.role },
@@ -298,6 +301,7 @@ struct ProfileView: View {
             let storedName = defaults.string(forKey: "profile.name")
             let storedEmail = defaults.string(forKey: "profile.email")
             let storedAvatarData = defaults.data(forKey: "profile.avatarData")
+            let storedPhone = defaults.string(forKey: "profile.phone") // Nuevo: teléfono solo en defaults
             
             var didMigrate = false
             if let storedName, !(storedName.isEmpty) {
@@ -319,11 +323,13 @@ struct ProfileView: View {
                 defaults.removeObject(forKey: "profile.name")
                 defaults.removeObject(forKey: "profile.email")
                 defaults.removeObject(forKey: "profile.avatarData")
+                // Nota: no removemos "profile.phone" porque aún no existe en Core Data
             }
             
             self.name = u.name ?? ""
             self.email = u.email ?? ""
             self.avatarImageData = u.profileImageData
+            self.phone = storedPhone ?? self.phone // mantener lo que ya había si no hay defaults
             
         } catch {
             print("Error loading/creating User:", error)
@@ -334,21 +340,28 @@ struct ProfileView: View {
         guard let u = user else { return }
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedPhone = phone.trimmingCharacters(in: .whitespacesAndNewlines)
         
         let originalName = u.name ?? ""
         let originalEmail = u.email ?? ""
         let originalAvatar = u.profileImageData
+        let originalPhone = UserDefaults.standard.string(forKey: "profile.phone") ?? ""
         
         let nameChanged = trimmedName != originalName
         let emailChanged = trimmedEmail != originalEmail
         let avatarChanged = avatarImageData != originalAvatar
+        let phoneChanged = trimmedPhone != originalPhone
         
-        guard nameChanged || emailChanged || avatarChanged else { return }
+        guard nameChanged || emailChanged || avatarChanged || phoneChanged else { return }
         
         u.name = trimmedName.isEmpty ? nil : trimmedName
         u.email = trimmedEmail.isEmpty ? nil : trimmedEmail
         if avatarChanged {
             u.profileImageData = avatarImageData
+        }
+        // Guardar teléfono en UserDefaults (no hay campo en Core Data aún)
+        if phoneChanged {
+            UserDefaults.standard.set(trimmedPhone, forKey: "profile.phone")
         }
         u.updatedAt = Date()
         
@@ -379,4 +392,3 @@ struct ProfileView: View {
 #Preview {
     NavigationStack { ProfileView() }
 }
-

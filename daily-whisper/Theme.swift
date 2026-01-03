@@ -2,94 +2,56 @@ import SwiftUI
 import Combine
 
 struct ThemeColors {
-    let background: Color
-    let cardBackground: Color
-    let cardTitle: Color
-    let cardSubtitle: Color
-    let textPrimary: Color
-    let textSecondary: Color
-    let accent: Color
+    // Fondos
+    let background: Color          // Fondo general de pantallas
+    let cardBackground: Color      // Fondo de tarjetas/superficies elevadas
     
-    // Nuevos: colores del botón de grabación
+    // Texto
+    let cardTitle: Color           // Títulos dentro de cards
+    let cardSubtitle: Color        // Subtítulos/descripciones en cards
+    let textPrimary: Color         // Texto principal en pantallas
+    let textSecondary: Color       // Texto secundario en pantallas
+    
+    // Acento
+    let accent: Color              // Color de acento general
+    
+    // Botón de grabación
     let recordIdle: Color
     let recordRecording: Color
-}
-
-enum AppTheme {
-    case light
-    case dark
     
-    var colors: ThemeColors {
-        switch self {
-        case .light:
-            return ThemeColors(
-                background: AppConfig.shared.ui.backgroundColor,
-                cardBackground: .white,
-                cardTitle: Color(.label),
-                cardSubtitle: Color(.secondaryLabel),
-                textPrimary: .primary,
-                textSecondary: .secondary,
-                accent: AppConfig.shared.ui.accentColor,
-                recordIdle: AppConfig.shared.ui.accentColor, // por defecto usamos el acento
-                recordRecording: .red // rojo estándar; puedes ajustar si quieres otro tono
-            )
-        case .dark:
-            return ThemeColors(
-                background: AppConfig.shared.ui.backgroundColor,
-                cardBackground: .black.opacity(0.5),
-                cardTitle: .white,
-                cardSubtitle: Color(.secondaryLabel),
-                textPrimary: .white,
-                textSecondary: .secondary,
-                accent: AppConfig.shared.ui.accentColor,
-                recordIdle: AppConfig.shared.ui.accentColor,
-                recordRecording: .red
-            )
-        }
-    }
+    // Utilitarios
+    let chipBackground: Color      // Fondo de chips/filtros
+    let separator: Color           // Líneas divisorias/strokes finos
 }
 
 @MainActor
 final class ThemeManager: ObservableObject {
     @Published private(set) var colors: ThemeColors
     
-    @AppStorage("profile.useSystemAppearance") private var useSystemAppearance: Bool = true
-    @AppStorage("profile.forceDarkMode") private var forceDarkMode: Bool = false
-    
-    private var cancellables = Set<AnyCancellable>()
-    
-    init(initialScheme: ColorScheme? = nil) {
-        // 1) Initialize all stored properties without touching @AppStorage
-        self.colors = AppTheme.light.colors
-        
-        // 2) Now self is initialized; it’s safe to read @AppStorage-backed properties
-        let theme = Self.resolveTheme(
-            useSystem: self.useSystemAppearance,
-            forceDark: self.forceDarkMode,
-            scheme: initialScheme
+    init() {
+        // Único esquema “light” con colores sólidos explícitos
+        self.colors = ThemeColors(
+            // Fondos
+            background: Color(red: 0.95, green: 0.96, blue: 0.98),          // #F2F5FA aprox
+            cardBackground: Color.white,                                     // #FFFFFF
+            
+            // Texto (negros/grises sólidos)
+            cardTitle: Color(red: 0.10, green: 0.12, blue: 0.14),            // #1A1F24
+            cardSubtitle: Color(red: 0.45, green: 0.50, blue: 0.55),         // #73808C
+            textPrimary: Color(red: 0.12, green: 0.15, blue: 0.18),          // #1F262E
+            textSecondary: Color(red: 0.55, green: 0.60, blue: 0.66),        // #8C99A8
+            
+            // Acento (puedes mantener el de AppConfig si querés control central)
+            accent: AppConfig.shared.ui.accentColor,                         // o Color(red: 0.00, green: 0.65, blue: 0.60) // #00A69A
+            
+            // Botón de grabación
+            recordIdle: AppConfig.shared.ui.accentColor,                      // igual al acento por defecto
+            recordRecording: Color(red: 0.93, green: 0.23, blue: 0.23),      // #ED3B3B
+            
+            // Utilitarios
+            chipBackground: Color(red: 0.92, green: 0.94, blue: 0.96),       // #EAF0F5
+            separator: Color(red: 0.85, green: 0.88, blue: 0.92)             // #D9E0EA
         )
-        self.colors = theme.colors
-    }
-    
-    func update(for scheme: ColorScheme?) {
-        let theme = Self.resolveTheme(
-            useSystem: self.useSystemAppearance,
-            forceDark: self.forceDarkMode,
-            scheme: scheme
-        )
-        self.colors = theme.colors
-    }
-    
-    private static func resolveTheme(useSystem: Bool, forceDark: Bool, scheme: ColorScheme?) -> AppTheme {
-        if useSystem {
-            if let scheme {
-                return scheme == .dark ? .dark : .light
-            } else {
-                return .light
-            }
-        } else {
-            return forceDark ? .dark : .light
-        }
     }
 }
 

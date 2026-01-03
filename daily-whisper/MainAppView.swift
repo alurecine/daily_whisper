@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MainAppView: View {
     @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.themeManager) private var theme
     @State private var selectedTab: AppTab = .dashboard
     
     var body: some View {
@@ -18,6 +19,6 @@ struct MainAppView: View {
             .tabItem { Label("Audios", systemImage: "waveform") }
             .tag(AppTab.record)
         }
-        .background(AppConfig.shared.ui.backgroundColor)
+        .background(theme.colors.background)
     }
 }

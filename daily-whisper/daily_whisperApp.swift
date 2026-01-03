@@ -26,27 +26,20 @@ struct daily_whisperApp: App {
     
     @Environment(\.scenePhase) private var scenePhase
     
-    // Preferencias de apariencia (aplicadas globalmente aquí)
-    @AppStorage("profile.useSystemAppearance") private var useSystemAppearance: Bool = true
-    @AppStorage("profile.forceDarkMode") private var forceDarkMode: Bool = false
-    
     // Preferencia de seguridad
     @AppStorage("security.requireOnForeground") private var requireOnForeground: Bool = false
     
-    // NUEVO: Rol persistido (fuente de verdad global)
+    // Rol persistido
     @AppStorage("user.role") private var storedUserRoleRaw: String = AppConfig.UserRole.normal.rawValue
     
     private let authManager = BiometricAuthManager()
     
-    // Theme manager global
-    @State private var themeManager = ThemeManager() // init sin tocar self
-    @Environment(\.colorScheme) private var colorScheme
+    // Theme manager global (único esquema claro)
+    @State private var themeManager = ThemeManager()
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
-    init() {
-        // FirebaseApp.configure() se ejecuta en AppDelegate. Eliminamos la duplicación aquí.
-    }
-    
+    init() {}
+
     var body: some Scene {
         WindowGroup {
             let content = Group {
@@ -69,7 +62,6 @@ struct daily_whisperApp: App {
             }
             content
                 .environment(\.themeManager, themeManager)
-                .modifier(GlobalColorSchemeApplier(useSystemAppearance: useSystemAppearance, forceDarkMode: forceDarkMode))
                 .onAppear {
                     // Autenticación inicial
                     guard !hasAttemptedInitialAuth else { return }
@@ -86,10 +78,6 @@ struct daily_whisperApp: App {
                     
                     // Asegurar que el límite diario arranque correcto
                     AppConfig.shared.audio.maxEntriesPerDay = AppConfig.shared.policy.maxEntriesPerDay
-                    
-                    // Actualizar tema inicial según preferencia del usuario
-                    let targetScheme: ColorScheme? = useSystemAppearance ? colorScheme : (forceDarkMode ? .dark : .light)
-                    themeManager.update(for: targetScheme)
                 }
                 .onChange(of: storedUserRoleRaw) { _, newValue in
                     let role = AppConfig.UserRole(rawValue: newValue) ?? .normal
@@ -101,10 +89,6 @@ struct daily_whisperApp: App {
                     // Limpieza de retención al volver a primer plano
                     let context = persistenceController.container.viewContext
                     AppConfig.shared.cleanupOldEntries(context: context)
-                    
-                    // Actualizar tema al volver
-                    let targetScheme: ColorScheme? = useSystemAppearance ? colorScheme : (forceDarkMode ? .dark : .light)
-                    themeManager.update(for: targetScheme)
 
                     // Reintentar registro de notificaciones si el usuario las habilitó en Ajustes
                     NotificationsManager.shared.ensureRegisteredIfAuthorized()
@@ -117,18 +101,6 @@ struct daily_whisperApp: App {
                     }
                     guard lockState == .unlocked else { return }
                     authenticateBiometricsFirst()
-                }
-                .onChange(of: useSystemAppearance) { _, _ in
-                    let targetScheme: ColorScheme? = useSystemAppearance ? colorScheme : (forceDarkMode ? .dark : .light)
-                    themeManager.update(for: targetScheme)
-                }
-                .onChange(of: forceDarkMode) { _, _ in
-                    let targetScheme: ColorScheme? = useSystemAppearance ? colorScheme : (forceDarkMode ? .dark : .light)
-                    themeManager.update(for: targetScheme)
-                }
-                .onChange(of: colorScheme) { _, newScheme in
-                    let targetScheme: ColorScheme? = useSystemAppearance ? newScheme : (forceDarkMode ? .dark : .light)
-                    themeManager.update(for: targetScheme)
                 }
         }
     }
